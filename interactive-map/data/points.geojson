@@ -1,0 +1,54 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+
+    { "type": "Feature",
+      "properties": {
+        "name": "Пешеходная аллея",
+        "img": "images/alley1.jpg",
+        "descr": "Аллея с деревьями, скамейками и беседками²"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.602071, 55.742032]
+      }
+    },
+
+    { "type": "Feature",
+      "properties": {
+        "name": "Детская площадка",
+        "img": "images/playground.jpg",
+        "descr": "Площадь 0,8 га"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.603594, 55.741465]
+      }
+    },
+
+    { "type": "Feature",
+      "properties": {
+        "name": "Жилой дом",
+        "img": "images/house.jpg",
+        "descr": "Жилой дом переменной этажности"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.601048, 55.742724]
+      }
+    },
+
+    { "type": "Feature",
+      "properties": {
+        "name": "Жилой дом",
+        "img": "images/house2.jpg",
+        "descr": "Жилой дом со встроенными кафе и магазинами на первом этаже"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.604685, 55.741627]
+      }
+    }
+
+  ]
+}
