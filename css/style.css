@@ -6,6 +6,7 @@ html, body {
 #map {
   height: 100vh;
   width: 100vw;
+  margin-bottom: 50px; /* Пример: высота footer + отступ */
 }
 
 .popup-img {
@@ -21,8 +22,8 @@ html, body {
 
 /* Стили для header */
 header {
-  background-color: #333;
-  color: white;
+  background-color: #666; /* Серый фон */
+  color: #333;          /* Темно-серый текст */
   padding: 10px 0;
   text-align: center;
 }
@@ -36,18 +37,19 @@ header nav {
 }
 
 header nav a {
-  color: white;
+  color: #333; /* Темно-серый текст */
   text-decoration: none;
   margin: 0 10px;
 }
 
 /* Стили для footer */
 footer {
-  background-color: #333;
-  color: white;
+  background-color: #666; /* Серый фон */
+  color: #333;          /* Темно-серый текст */
   text-align: center;
   padding: 10px 0;
-  position: fixed; /* Фиксированное положение внизу */
-  bottom: 0;        /* Прижать к низу */
-  width: 100%;       /* Занять всю ширину */
+  position: relative; /* или static */
+  bottom: auto;
+  width: 100%;
+  z-index: 1000; /* Убедитесь, что футер поверх карты */
 }
