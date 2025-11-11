@@ -11,16 +11,16 @@ const planBounds = L.latLngBounds(
 );
 
 const map = L.map('map');
-map.fitBounds(planBounds, {padding:[60,60]}); // 60px поля
+map.fitBounds(planBounds, { padding: [60, 60] }); // 60px поля
 
 // подложка
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-  maxZoom:19,
-  attribution:'© OSM, Carto'
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+  attribution: '© OSM, Carto'
 }).addTo(map);
 
-// повернутый оверлей (A=upperLeft, B=upperRight, C=lowerLeft)
-L.imageOverlay.rotated('images/plan_georeferenced_final.png', A, B, C, {opacity:0.8}).addTo(map);
+// Обычный (не повернутый) оверлей — используется, если PNG уже в WGS84
+L.imageOverlay('images/plan_georeferenced_final.png', planBounds, { opacity: 0.8 }).addTo(map);
 
 // -------- маркер-иконка ----------
 const blueIcon = L.icon({
@@ -35,11 +35,11 @@ fetch('data/points.geojson')
     L.geoJSON(json, {
       pointToLayer: (_, latlng) => L.marker(latlng, { icon: blueIcon }),
       onEachFeature: (f, layer) => {
-        const p = f.properties;
+        const p = f.properties || {};
         layer.bindPopup(
-          `<b>${p.name}</b><br>
-           <img class="popup-img" src="${p.img}"><br>
-           ${p.descr}`
+          `<b>${p.name || ''}</b><br>
+           <img class="popup-img" src="${p.img || ''}"><br>
+           ${p.descr || ''}`
         );
       }
     }).addTo(map);
