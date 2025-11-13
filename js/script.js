@@ -37,11 +37,12 @@ fetch('data/points.geojson')
      pointToLayer:(_,latlng)=>L.marker(latlng,{icon:blueIcon}),
      onEachFeature:(f,lyr)=>{
        const p=f.properties||{};
-       lyr.bindPopup(
-         `<h3 class="popup-title">${p.name||''}</h3>
-          ${p.img?<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>:''}
-          ${p.descr||''}`
-       );
+   lyr.bindPopup(
+  `<h3 class="popup-title">${p.name || ''}</h3>
+   ${p.img ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>` : ''}
+   ${p.descr || ''}`
+);
+
 
        const type=(p.layer||'genplan').trim().toLowerCase();
        (layers[type]||layers.genplan).addLayer(lyr);
@@ -75,3 +76,4 @@ map.on('popupopen', e=>{
     img.addEventListener('click',()=>showLightbox(img.src),{once:true});
   }
 });
+
