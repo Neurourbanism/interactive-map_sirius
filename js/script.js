@@ -46,7 +46,7 @@ fetch('data/points.geojson')
   .then(r => r.json())
   .then(json => {
     L.geoJSON(json, {
-      pointToLayer : (_, latlng) => L.marker(latlng, { icon: blueIcon }),
+      pointToLayer: (_, latlng) => L.marker(latlng, { icon: blueIcon }),
 
       onEachFeature: (feat, lyr) => {
         const p = feat.properties || {};
@@ -54,14 +54,14 @@ fetch('data/points.geojson')
         /* --- формируем раскрывашку ТЭП (если есть данные) --- */
         let tepBlock = '';
         if (p.total_area || p.living_area) {
-          tepBlock =
-            `<details class="popup-tep">
-               <summary>ТЭП</summary>
-               <ul>
-                 ${p.total_area  ? `<li>Общая площадь — ${p.total_area.toLocaleString('ru-RU')} м²</li>` : ''}
-                 ${p.living_area ? `<li>Жилая площадь — ${p.living_area.toLocaleString('ru-RU')} м²</li>` : ''}
-               </ul>
-             </details>`;
+          tepBlock = `
+            <details class="popup-tep">
+              <summary>ТЭП</summary>
+              <ul>
+                ${p.total_area  ? `<li>Общая площадь — ${p.total_area.toLocaleString('ru-RU')} м²</li>` : ''}
+                ${p.living_area ? `<li>Жилая площадь — ${p.living_area.toLocaleString('ru-RU')} м²</li>` : ''}
+              </ul>
+            </details>`;
         }
 
         /* --- контент pop-up --- */
@@ -110,3 +110,4 @@ map.on('popupopen', e => {
   const img = e.popup._contentNode.querySelector('.popup-img');
   if (img) img.addEventListener('click', () => showLightbox(img.src), { once: true });
 });
+
