@@ -1,52 +1,3 @@
-/* ===== Базовые размеры ===== */
-html,body{
-  margin:0;
-  height:100%;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-}
-map{
-  height:100vh;
-  width:100vw;
-}
-
-/* ===== Leaflet default исправления ===== */
-.leaflet-popup-content{
-  margin:8px 12px;
-}
-
-/* ===== Содержимое pop-up ===== */
-.popup-img{
-  width:120px;            /* превью */
-  border-radius:4px;
-  display:block;
-  margin:0 0 6px;
-}
-.popup-title{
-  margin:.3em 0;
-  font-weight:700;
-  font-size:16px;
-}
-.popup-text{
-  margin:.3em 0 .8em;
-  font-size:14px;
-  line-height:1.35;
-}
-
-/* блок ТЭП (раскрывашка) */
-.popup-tep summary{
-  font-weight:700;
-  cursor:pointer;
-  outline:none;
-}
-.popup-tep ul{
-  margin:.2em 0 0 1.2em;
-  padding:0;
-  font-size:14px;
-}
-.popup-tep li{
-  list-style:disc;
-}
-
 /* ===== Лайтбокс ===== */
 .lb-overlay{
   position:fixed;
@@ -67,7 +18,7 @@ map{
   top:20px;
   right:30px;
   font:32px/1 sans-serif;
-  color:fff;
+  color:fff;          /* ← было 'fff' */
   background:none;
   border:none;
   cursor:pointer;
@@ -75,3 +26,14 @@ map{
   line-height:1;
 }
 .lb-close:hover{opacity:.8}
+
+/* ===== Легенда категорий ===== */
+.legend-icon{
+  display:inline-block;
+  width:12px;
+  height:12px;
+  margin-right:4px;
+  border-radius:2px;
+}
+.legend-icon.orange{background:f47b20;}   /* здания */
+.legend-icon.violet{background:7851a9;}   /* благоустройство */
