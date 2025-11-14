@@ -3,35 +3,49 @@ const layers = ['genplan','transport'];
 const cats   = ['buildings','landscape'];
 
 /* ===== карта и подложки ===== */
-const bounds = L.latLngBounds([55.7407158302922,37.60009626314388],
-                              [55.74309207410261,37.604669304174124]);
+const bounds = L.latLngBounds(
+  [55.7407158302922,37.60009626314388],
+  [55.74309207410261,37.604669304174124]
+);
 
 const map = L.map('map').fitBounds(bounds,{padding:[60,60]});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {maxZoom:19, attribution:'© OSM, Carto'}).addTo(map);
 
-const raster = {
+const raster = {                               // ← объявляем ОДИН раз
   genplan  : L.imageOverlay('images/plan_georeferenced_finalSmall.webp',  bounds,{opacity:.8}),
   transport: L.imageOverlay('images/plan_georeferenced_blackSmall.webp', bounds,{opacity:.7})
 };
-raster.genplan.addTo(map);
+raster.genplan.addTo(map);                      // стартовая подложка
 let activeLayer = 'genplan';
 
+/* ---------- контрол «Слои» ---------- */
+L.control.layers(
+  { 'Генплан'  : raster.genplan,
+    'Транспорт': raster.transport },
+  null,
+  { collapsed:false }
+).addTo(map);
+
 /* ===== категории-контейнеры ===== */
-const combo={};
+const combo = {};
 layers.forEach(l=>{
   combo[l]={};
-  cats.forEach(c=>combo[l][c]=L.layerGroup());
+  cats.forEach(c=> combo[l][c] = L.layerGroup());
 });
 
 /* ===== иконки ===== */
-const icons={
-  buildings : L.icon({iconUrl:'icons/marker-orange.png',
-                      shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-                      iconSize:[25,41],iconAnchor:[12,41],shadowSize:[41,41]}),
-  landscape : L.icon({iconUrl:'icons/marker-violet.png',
-                      shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-                      iconSize:[25,41],iconAnchor:[12,41],shadowSize:[41,41]})
+const icons = {
+  buildings : L.icon({
+    iconUrl:'icons/marker-orange.png',
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize:[25,41], iconAnchor:[12,41], shadowSize:[41,41]
+  }),
+  landscape : L.icon({
+    iconUrl:'icons/marker-violet.png',
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize:[25,41], iconAnchor:[12,41], shadowSize:[41,41]
+  })
 };
 
 /* ===== данные ===== */
@@ -110,6 +124,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
