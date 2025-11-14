@@ -61,21 +61,26 @@ fetch('data/points.geojson')
      ${p.descr?`<div class="popup-text">${p.descr}</div>`:''}`
   );
 
-  const lay = (p.layer || 'genplan').toLowerCase();
-  const cat = (p.cat   || 'buildings').toLowerCase();
+ const lay = (p.layer || 'genplan').toLowerCase();
+const cat = (p.cat   || 'buildings').toLowerCase();
 
-  combo[lay][cat].addLayer(lyr);   // ← здесь теперь правильно
+  combo[lay][cat].addLayer(lyr);    // ← здесь теперь правильно
 }
     });
 
     /* ---------- контрол подложек ---------- */
-    L.control.layers(raster,null,{collapsed:false}).addTo(map);
-
+   L.control.layers(
+  { 'Генплан': raster.genplan,
+    'Транспорт': raster.transport },
+  null,
+  {collapsed:false}
+).addTo(map);
     /* ---------- контрол категорий ---------- */
-    const catCtrl = L.control.layers(null,{
-      '<span class="legend-icon orange"></span> Здания'      : L.layerGroup(), // proxy
-      '<span class="legend-icon violet"></span> Благоустр.'  : L.layerGroup()
-    },{collapsed:false}).addTo(map);
+    const catCtrl = L.control.layers(null, {
+  '<span class="legend-icon orange"></span> Здания'      : cat.buildings,
+  '<span class="legend-icon violet"></span> Благоустр.'  : cat.landscape
+},
+{collapsed:false}).addTo(map);
 
     /* при старте включаем обе категории */
     cats.forEach(c=> map.addLayer(combo[activeLayer][c]));
@@ -120,4 +125,5 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
