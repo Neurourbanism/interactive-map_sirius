@@ -79,14 +79,15 @@ fetch('data/points.geojson')
    });
 
    /* категории on/off */
-   catCtl.on('overlayadd',  e=>{
-     const c=e.name.includes('Здания')?'buildings':'landscape';
-     map.addLayer(combo[activeLayer][c]);
-   });
-   catCtl.on('overlayremove',e=>{
-     const c=e.name.includes('Здания')?'buildings':'landscape';
-     map.removeLayer(combo[activeLayer][c]);
-   });
+   catCtrl.on('overlayadd',  e=>{
+  const cat = e.name.includes('Здания') ? 'buildings' : 'landscape';
+  map.addLayer(combo[activeLayer][cat]);
+});
+catCtrl.on('overlayremove', e=>{
+  const cat = e.name.includes('Здания') ? 'buildings' : 'landscape';
+  map.removeLayer(combo[activeLayer][cat]);
+});
 });
 
 /* ===== легенда CSS уже в style.css ===== */
+
