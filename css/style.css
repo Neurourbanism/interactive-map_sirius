@@ -25,16 +25,22 @@
   padding:0;
   line-height:1;
 }
-.lb-close:hover{opacity:.8}
+.lb-close{
+  ...
+  color:fff;          /*  добавили */
+}
 
 /* ===== Легенда категорий ===== */
 .legend-icon{
   display:inline-block;
-  width:12px;height:12px;
+  width:12px;
+  height:12px;
   margin-right:4px;
   border-radius:2px;
 }
-.legend-icon.orange{background:f47b20;}
-.legend-icon.violet{background:7851a9;}
+.legend-icon.orange { background:f47b20; }   /*  добавили */
+.legend-icon.violet { background:7851a9; }   /*  добавили */
+
+
 
 
