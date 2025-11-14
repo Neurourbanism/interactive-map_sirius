@@ -18,7 +18,7 @@
   top:20px;
   right:30px;
   font:32px/1 sans-serif;
-  color:fff;          /* правильный hex */
+  color:fff;                /* ← хэш добавлен */
   background:none;
   border:none;
   cursor:pointer;
@@ -35,5 +35,5 @@
   margin-right:4px;
   border-radius:2px;
 }
-.legend-icon.orange { background:f47b20; }   /* оранжевый */
-.legend-icon.violet { background:7851a9; }   /* фиолетовый */
+.legend-icon.orange { background:#f47b20; }   /* ← хэш */
+.legend-icon.violet { background:#7851a9; }   /* ← хэш */
