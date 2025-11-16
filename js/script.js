@@ -1,28 +1,23 @@
-/* ===== карта и подложки ===== */
-/* границы мастер-плана в EPSG:3857 (метры) */
-const minX = 4447322.055398548,
-      minY = 5374686.834880918,
-      maxX = 4448937.243970849,
-      maxY = 5375722.957046603;
+/* ===== карта и подложки (EPSG:4326) ===== */
+/* границы мастер-плана в градусах */
+const bounds = L.latLngBounds(
+  [43.4106095120386968, 39.95101101168743],   // [South , West]
+  [43.4173891758608832, 39.96542148920572]    // [North , East]
+);
 
-/* переводим в широту/долготу */
-const sw = L.CRS.EPSG3857.unproject(L.point(minX, minY)); // south-west
-const ne = L.CRS.EPSG3857.unproject(L.point(maxX, maxY)); // north-east
-const bounds = L.latLngBounds(sw, ne);
-
-/* карта в Web-Mercator */
-const map = L.map('map', { crs: L.CRS.EPSG3857 })
-             .fitBounds(bounds, { padding:[60,60] });
+/* карта (по умолчанию 4326) */
+const map = L.map('map')
+             .fitBounds(bounds, {padding:[60,60]});
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   { maxZoom:19, attribution:'© OSM, Carto' }).addTo(map);
 
 /* растровые слои */
 const raster = {
-  genplan  : L.imageOverlay('images/Masterplan1.webp', bounds,{opacity:.8}),
-  transport: L.imageOverlay('images/Transport1.webp',  bounds,{opacity:.7})
+  genplan  : L.imageOverlay('images/Masterplan1New.webp', bounds,{opacity:.8}),
+  transport: L.imageOverlay('images/Transport1New.webp',  bounds,{opacity:.7})
 };
-raster.genplan.addTo(map);
+raster.genplan.addTo(map);          // стартовая подложка
 let activeLayer = 'genplan';
 
 /* контрол «Слои» */
@@ -32,6 +27,7 @@ L.control.layers(
   null,
   { collapsed:false }
 ).addTo(map);
+
 
 /* ===== категории-контейнеры ===== */
 const combo = {};
@@ -130,6 +126,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
