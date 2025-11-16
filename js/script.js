@@ -1,25 +1,26 @@
-/* ===== главные переменные ===== */
-const layers = ['genplan','transport'];
-const cats   = ['buildings','landscape'];
-
 /* ===== карта и подложки ===== */
+/* границы мастер-плана в EPSG:3857  (метры) */
 const bounds = L.latLngBounds(
-  [55.7407158302922,37.60009626314388],
-  [55.74309207410261,37.604669304174124]
+  [5374686.834880918 , 4447322.055398548],   // [minY , minX]
+  [5375722.957046603, 4448937.243970849]    // [maxY , maxX]
 );
 
-const map = L.map('map').fitBounds(bounds,{padding:[60,60]});
+/* карта в Web-Mercator */
+const map = L.map('map', { crs: L.CRS.EPSG3857 })
+             .fitBounds(bounds,{padding:[60,60]});
+
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {maxZoom:19, attribution:'© OSM, Carto'}).addTo(map);
 
-const raster = {                               // ← объявляем ОДИН раз
-  genplan  : L.imageOverlay('images/plan_georeferenced_finalSmall.webp',  bounds,{opacity:.8}),
-  transport: L.imageOverlay('images/plan_georeferenced_blackSmall.webp', bounds,{opacity:.7})
+/* растровые слои */
+const raster = {
+  genplan  : L.imageOverlay('images/Masterplan1.webp',  bounds,{opacity:.8}),
+  transport: L.imageOverlay('images/Transport1.webp',   bounds,{opacity:.7})
 };
-raster.genplan.addTo(map);                      // стартовая подложка
+raster.genplan.addTo(map);           // стартовая подложка
 let activeLayer = 'genplan';
 
-/* ---------- контрол «Слои» ---------- */
+/* контрол «Слои» */
 L.control.layers(
   { 'Генплан'  : raster.genplan,
     'Транспорт': raster.transport },
@@ -124,6 +125,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
