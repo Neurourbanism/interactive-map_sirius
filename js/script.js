@@ -1,32 +1,55 @@
 /* ===== карта и подложки (EPSG:4326) ===== */
-/* границы мастер-плана в градусах */
-const bounds = L.latLngBounds(
-  [43.4106095120386968, 39.95101101168743],   // [South , West]
-  [43.4173891758608832, 39.96542148920572]    // [North , East]
+
+/* bounds участка-1 */
+const b1 = L.latLngBounds(
+  [43.4106095120386968, 39.95101101168743],
+  [43.4173891758608832, 39.96542148920572]
 );
 
-/* карта (по умолчанию 4326) */
+/* bounds участка-2 */
+const b2 = L.latLngBounds(
+  [43.395917235035576 , 39.98298856123352],
+  [43.404276445202839 , 39.99223406925298]
+);
+
 const map = L.map('map')
-             .fitBounds(bounds, {padding:[60,60]});
+             .fitBounds(b1,{padding:[40,40]});      // стартуем с участка-1
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-  { maxZoom:19, attribution:'© OSM, Carto' }).addTo(map);
+  {maxZoom:19, attribution:'© OSM, Carto'}).addTo(map);
 
-/* растровые слои */
-const raster = {
-  genplan  : L.imageOverlay('images/Masterplan1New.webp', bounds,{opacity:.8}),
-  transport: L.imageOverlay('images/Transport1New.webp',  bounds,{opacity:.7})
-};
-raster.genplan.addTo(map);          // стартовая подложка
-let activeLayer = 'genplan';
+/* overlay-файлы */
+const mp1 = L.imageOverlay('images/Masterplan1New.webp', b1,{opacity:.8});
+const tr1 = L.imageOverlay('images/Transport1New.webp',  b1,{opacity:.7});
+const mp2 = L.imageOverlay('images/Masterplan2.webp',    b2,{opacity:.8});
+const tr2 = L.imageOverlay('images/Transport2.webp',     b2,{opacity:.7});
+
+/* показываем генплан участка-1 по умолчанию */
+mp1.addTo(map);
 
 /* контрол «Слои» */
 L.control.layers(
-  { 'Генплан'  : raster.genplan,
-    'Транспорт': raster.transport },
-  null,
-  { collapsed:false }
+  { 'Участок 1 – генплан'  : mp1,
+    'Участок 1 – транспорт': tr1,
+    'Участок 2 – генплан'  : mp2,
+    'Участок 2 – транспорт': tr2 },
+  null,{collapsed:false}
 ).addTo(map);
+
+/* ── кнопки зума ───────────────────── */
+const ZoomCtrl = L.Control.extend({
+  onAdd(){
+    const d = L.DomUtil.create('div','zoom-buttons');
+    d.innerHTML =
+      '<button id="toA">▣ Участок 1</button>' +
+      '<button id="toB">▣ Участок 2</button>';
+    return d;
+  }
+});
+map.addControl(new ZoomCtrl({position:'topleft'}));
+
+document.getElementById('toA').onclick = ()=> map.fitBounds(b1,{padding:[20,20]});
+document.getElementById('toB').onclick = ()=> map.fitBounds(b2,{padding:[20,20]});
 
 
 /* --- кастомные кнопки масштабирования --- */
@@ -143,6 +166,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
