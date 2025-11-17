@@ -1,23 +1,39 @@
 /* ===== карта и подложки (EPSG:4326) ===== */
-/* границы мастер-плана в градусах */
-const bounds = L.latLngBounds(
-  [43.4106095120386968, 39.95101101168743],   // [South , West]
-  [43.4173891758608832, 39.96542148920572]    // [North , East]
+
+/* bounds первого участка */
+const b1 = L.latLngBounds(
+  [43.4106095120386968, 39.95101101168743],   // SW
+  [43.4173891758608832, 39.96542148920572]    // NE
 );
 
-/* карта (по умолчанию 4326) */
+/* bounds второго участка */
+const b2 = L.latLngBounds(
+  [43.395917235035576 , 39.98298856123352],   // SW
+  [43.404276445202839 , 39.99223406925298]    // NE
+);
+
+/* общий прямоугольник для fitBounds */
+const fullBounds = b1.extend(b2);
+
+/* карта (WGS-84) */
 const map = L.map('map')
-             .fitBounds(bounds, {padding:[60,60]});
+             .fitBounds(fullBounds, { padding:[60,60] });
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   { maxZoom:19, attribution:'© OSM, Carto' }).addTo(map);
 
 /* растровые слои */
 const raster = {
-  genplan  : L.imageOverlay('images/Masterplan1New.webp', bounds,{opacity:.8}),
-  transport: L.imageOverlay('images/Transport1New.webp',  bounds,{opacity:.7})
+  genplan  : L.layerGroup([
+                L.imageOverlay('images/Masterplan1New.webp', b1,{opacity:.8}),
+                L.imageOverlay('images/Masterplan2.webp', b2,{opacity:.8})
+              ]),
+  transport: L.layerGroup([
+                L.imageOverlay('images/Transport1New.webp',  b1,{opacity:.7}),
+                L.imageOverlay('images/Transport2.webp',  b2,{opacity:.7})
+              ])
 };
-raster.genplan.addTo(map);          // стартовая подложка
+raster.genplan.addTo(map);           // стартовая подложка
 let activeLayer = 'genplan';
 
 /* контрол «Слои» */
@@ -27,7 +43,6 @@ L.control.layers(
   null,
   { collapsed:false }
 ).addTo(map);
-
 
 /* ===== категории-контейнеры ===== */
 const combo = {};
@@ -126,6 +141,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
