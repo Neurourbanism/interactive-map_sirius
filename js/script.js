@@ -1,9 +1,9 @@
 /* ===== карта и подложки (EPSG:4326) ===== */
 
-/* bounds первого участка */
+/* bounds первого участка – по GeoJSON */
 const b1 = L.latLngBounds(
-  [43.4106095120386968, 39.95101101168743],
-  [43.4173891758608832, 39.96542148920572]
+  [43.4110287625804361, 39.9519188179632252],   // South-West
+  [43.4173702620497437, 39.9653869124093859]    // North-East
 );
 
 /* bounds второго участка */
@@ -155,6 +155,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
