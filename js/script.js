@@ -79,58 +79,92 @@ const catCtrl = L.control.layers(
   {collapsed:false, sanitize:false}
 ).addTo(map);
 
-/* загрузка точек */
+/*******
+    Загрузка точек
+*******/
 fetch('data/pointsObjects.geojson')
-  .then(r=>r.json())
-  .then(json=>{
-    L.geoJSON(json,{
-      pointToLayer:(f,ll)=>{
-        let cat=(f.properties.cat||'buildings').toLowerCase();
-        if(cat==='buldings') cat='buildings';       // исправляем опечатку
-        return L.marker(ll,{icon:icons[cat]});
+  .then(r => r.json())
+  .then(json => {
+    L.geoJSON(json, {
+      pointToLayer: (f, ll) => {
+        let cat = (f.properties.cat || 'buildings').toLowerCase();
+        if (cat === 'buldings') cat = 'buildings';   // правим опечатку
+        return L.marker(ll, { icon: icons[cat] });
       },
-      onEachFeature:(f,lyr)=>{
-        const p=f.properties||{};
-        lyr.bindPopup(`
-          ${p.img ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>` : ''}
-          <div class="popup-title">${p.name||''}</div>
-          ${p.descr ? `<div class="popup-text">${p.descr}</div>` : ''}
-        `);
-        const cat=(p.cat||'buildings').toLowerCase();
+
+      onEachFeature: (f, lyr) => {
+        const p = f.properties || {};
+
+        /* картинка */
+        const img = p.img
+          ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>`
+          : '';
+
+        /* описание */
+        const descr = p.descr
+          ? `<div class="popup-text">${p.descr}</div>`
+          : '';
+
+        /* ТЭП */
+        const tep = [];
+        if (p.buildarea) tep.push(`Площадь застройки — ${Number(p.buildarea).toLocaleString('ru-RU')} м²`);
+        if (p.grossarea) tep.push(`Общая площадь — ${Number(p.grossarea).toLocaleString('ru-RU')} м²`);
+
+        const tepBlock = tep.length
+          ? `<details class="popup-tep">
+               <summary>ТЭП</summary>
+               <ul><li>${tep.join('</li><li>')}</li></ul>
+             </details>`
+          : '';
+
+        /* pop-up HTML */
+        const html = `
+          ${img}
+          <div class="popup-title">${p.name || ''}</div>
+          ${descr}
+          ${tepBlock}
+        `;
+        lyr.bindPopup(html);
+
+        /* кладём маркер в группу категории */
+        const cat = (p.cat || 'buildings').toLowerCase();
         combo[cat].addLayer(lyr);
       }
     });
   });
 
-/*************
-         Лайтбокс
-*************/
-function showLightbox(src){
-  if(document.querySelector('.lb-overlay')) return;
-  const w=document.createElement('div');
-  w.className='lb-overlay';
-  w.innerHTML=`<button class="lb-close">×</button><img src="${src}" alt="">`;
+/*******
+      Лайтбокс
+*******/
+function showLightbox(src) {
+  if (document.querySelector('.lb-overlay')) return;
+  const w = document.createElement('div');
+  w.className = 'lb-overlay';
+  w.innerHTML = `<button class="lb-close">×</button><img src="${src}" alt="">`;
   document.body.appendChild(w);
-  w.querySelector('.lb-close').onclick=()=>w.remove();
-  w.onclick=e=>{ if(e.target===w) w.remove(); };
+  w.querySelector('.lb-close').onclick = () => w.remove();
+  w.onclick = e => { if (e.target === w) w.remove(); };
 }
-map.on('popupopen', e=>{
-  const img=e.popup._contentNode.querySelector('.popup-img');
-  if(img) img.addEventListener('click',()=>showLightbox(img.src));
+
+map.on('popupopen', e => {
+  const img = e.popup._contentNode.querySelector('.popup-img');
+  if (img) img.addEventListener('click', () => showLightbox(img.src));
 });
 
-/*************
-        Кнопки зума
-*************/
+/*******
+     Кнопки зума
+*******/
 const ZoomCtrl = L.Control.extend({
-  onAdd(){
-    const d=L.DomUtil.create('div','zoom-buttons');
+  onAdd() {
+    const d = L.DomUtil.create('div', 'zoom-buttons');
     d.innerHTML =
       '<button id="toA">▣ Участок 1</button>' +
       '<button id="toB">▣ Участок 2</button>';
     return d;
   }
 });
-map.addControl(new ZoomCtrl({position:'topleft'}));
-document.getElementById('toA').onclick = () => map.fitBounds(b1,{padding:[20,20]});
-document.getElementById('toB').onclick = () => map.fitBounds(b2,{padding:[20,20]});
+map.addControl(new ZoomCtrl({ position: 'topleft' }));
+document.getElementById('toA').onclick = () => map.fitBounds(b1, { padding:[20,20] });
+document.getElementById('toB').onclick = () => map.fitBounds(b2, { padding:[20,20] });
+
+
