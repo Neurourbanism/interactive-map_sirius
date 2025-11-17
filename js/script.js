@@ -47,11 +47,18 @@ L.control.layers(
   {collapsed:false}
 ).addTo(map);
 
-/* ===== категории-контейнеры ===== */
+/* ===== массивы слоёв / категорий ===== */
+const layers   = ['genplan','transport'];       // базовые подложки
+const cats     = ['buildings','landscape'];     // типы маркеров
+let   activeLayer = 'genplan';
+
+/* ===== контейнеры для маркеров ===== */
 const combo = {};
 layers.forEach(l=>{
-  combo[l] = {};
-  cats.forEach(c => combo[l][c] = L.layerGroup());
+  combo[l] = {
+    buildings : L.layerGroup(),
+    landscape : L.layerGroup()
+  };
 });
 
 /* ===== иконки ===== */
@@ -82,6 +89,7 @@ fetch('data/pointsObjects.geojson')
       onEachFeature:(f,lyr)=>{
         const p = f.properties || {};
 
+        /* pop-up */
         const popup = `
           ${p.img ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>` : ''}
           <div class="popup-title">${p.name || ''}</div>
@@ -89,8 +97,14 @@ fetch('data/pointsObjects.geojson')
         `;
         lyr.bindPopup(popup);
 
+        /* распределяем */
         const lay = (p.layer || 'genplan').toLowerCase();
         const cat = (p.cat   || 'buildings').toLowerCase();
+
+        /* если комбинации нет — создаём */
+        if(!combo[lay]) combo[lay] = { buildings:L.layerGroup(), landscape:L.layerGroup() };
+        if(!combo[lay][cat]) combo[lay][cat] = L.layerGroup();
+
         combo[lay][cat].addLayer(lyr);
       }
     });
@@ -108,20 +122,20 @@ fetch('data/pointsObjects.geojson')
     /* включаем галочки визуально */
     Object.values(catCtrl._layers).forEach(o => map.addLayer(o.layer));
 
-    /* стартовый набор маркеров */
+    /* стартовый набор (генплан) */
     cats.forEach(c => map.addLayer(combo.genplan[c]));
 
-    /* смена подложки */
+    /* --- смена подложки --- */
     map.on('baselayerchange', e=>{
       cats.forEach(c => map.removeLayer(combo[activeLayer][c]));
-      activeLayer = (e.name === 'Транспорт') ? 'transport' : 'genplan';
+      activeLayer = (e.name==='Транспорт') ? 'transport' : 'genplan';
       Object.values(catCtrl._layers).forEach(o=>{
         const c = o.name.includes('Здания') ? 'buildings' : 'landscape';
         if(map.hasLayer(o.layer)) map.addLayer(combo[activeLayer][c]);
       });
     });
 
-    /* категории on/off */
+    /* --- категории on/off --- */
     map.on('overlayadd',   e=>{
       const c = e.name.includes('Здания') ? 'buildings' : 'landscape';
       map.addLayer(combo[activeLayer][c]);
@@ -146,12 +160,6 @@ map.on('popupopen', e=>{
   const img = e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click', () => showLightbox(img.src));
 });
-
-
-
-
-
-
 
 
 
