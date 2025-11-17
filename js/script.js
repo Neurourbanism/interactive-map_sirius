@@ -15,11 +15,12 @@ const b2 = L.latLngBounds(
 /* общий прямоугольник */
 const fullBounds = b1.extend(b2);
 
-/* карта */
-const map = L.map('map').fitBounds(fullBounds,{padding:[60,60]});
+/* карта (открываем над участком-1) */
+const map = L.map('map')
+             .setView(b1.getCenter(), 15);          // начальный зум
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-  {maxZoom:19, attribution:'© OSM, Carto'}).addTo(map);
+  { maxZoom:19, attribution:'© OSM, Carto' }).addTo(map);
 
 /* --- overlay-файлы --- */
 const mp1 = L.imageOverlay('images/Masterplan1New.webp', b1,{opacity:.8});
@@ -27,7 +28,7 @@ const mp2 = L.imageOverlay('images/Masterplan2.webp',    b2,{opacity:.8});
 const tr1 = L.imageOverlay('images/Transport1New.webp',  b1,{opacity:.7});
 const tr2 = L.imageOverlay('images/Transport2.webp',     b2,{opacity:.7});
 
-/* --- включаем генплан по умолчанию --- */
+/* слой по умолчанию */
 mp1.addTo(map);
 mp2.addTo(map);
 let activeLayer = 'genplan';
@@ -40,6 +41,22 @@ L.control.layers(
   { collapsed:false }
 ).addTo(map);
 
+/* --- кастомные кнопки масштабирования --- */
+const ZoomCtrl = L.Control.extend({
+  onAdd(){
+    const d = L.DomUtil.create('div','zoom-buttons');
+    d.innerHTML =
+      '<button id="toA">▣ Участок 1</button>' +
+      '<button id="toB">▣ Участок 2</button>' +
+      '<button id="toBoth">▣ Оба</button>';
+    return d;
+  }
+});
+map.addControl(new ZoomCtrl({position:'topleft'}));
+
+document.getElementById('toA').onclick   = ()=> map.fitBounds(b1,{padding:[20,20]});
+document.getElementById('toB').onclick   = ()=> map.fitBounds(b2,{padding:[20,20]});
+document.getElementById('toBoth').onclick= ()=> map.fitBounds(fullBounds,{padding:[60,60]});
 
 /* ===== категории-контейнеры ===== */
 const combo = {};
@@ -138,6 +155,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
