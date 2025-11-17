@@ -1,45 +1,33 @@
 /* ===== карта и подложки (EPSG:4326) ===== */
-
-/* bounds первого участка – по GeoJSON */
-const b1 = L.latLngBounds(
-  [43.4110287625804361, 39.9519188179632252],   // South-West
-  [43.4173702620497437, 39.9653869124093859]    // North-East
+/* границы мастер-плана в градусах */
+const bounds = L.latLngBounds(
+  [43.4106095120386968, 39.95101101168743],   // [South , West]
+  [43.4173891758608832, 39.96542148920572]    // [North , East]
 );
 
-/* bounds второго участка */
-const b2 = L.latLngBounds(
-  [43.395917235035576 , 39.98298856123352],
-  [43.404276445202839 , 39.99223406925298]
-);
-
-/* общий прямоугольник */
-const fullBounds = b1.extend(b2);
-
-/* карта (открываем над участком-1) */
+/* карта (по умолчанию 4326) */
 const map = L.map('map')
-             .setView(b1.getCenter(), 15);          // начальный зум
+             .fitBounds(bounds, {padding:[60,60]});
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   { maxZoom:19, attribution:'© OSM, Carto' }).addTo(map);
 
-/* --- overlay-файлы --- */
-const mp1 = L.imageOverlay('images/Masterplan1Clip.webp', b1,{opacity:.8});
-const mp2 = L.imageOverlay('images/Masterplan2.webp',    b2,{opacity:.8});
-const tr1 = L.imageOverlay('images/Masterplan1Clip.webp',  b1,{opacity:.7});
-const tr2 = L.imageOverlay('images/Transport2.webp',     b2,{opacity:.7});
-
-/* слой по умолчанию */
-mp1.addTo(map);
-mp2.addTo(map);
+/* растровые слои */
+const raster = {
+  genplan  : L.imageOverlay('images/Masterplan1New.webp', bounds,{opacity:.8}),
+  transport: L.imageOverlay('images/Transport1New.webp',  bounds,{opacity:.7})
+};
+raster.genplan.addTo(map);          // стартовая подложка
 let activeLayer = 'genplan';
 
-/* --- контрол «Слои» --- */
+/* контрол «Слои» */
 L.control.layers(
-  { 'Генплан'  : L.layerGroup([mp1, mp2]),
-    'Транспорт': L.layerGroup([tr1, tr2]) },
+  { 'Генплан'  : raster.genplan,
+    'Транспорт': raster.transport },
   null,
   { collapsed:false }
 ).addTo(map);
+
 
 /* --- кастомные кнопки масштабирования --- */
 const ZoomCtrl = L.Control.extend({
@@ -155,6 +143,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
