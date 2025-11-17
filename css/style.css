@@ -33,7 +33,21 @@
   width:12px;
   height:12px;
   margin-right:4px;
-  border-radius:2px;
+  border-radius:2px;  
 }
 .legend-icon.orange { background:#f47b20; }   /* ← хэш */
 .legend-icon.violet { background:#7851a9; }   /* ← хэш */
+
+.zoom-buttons{
+  background:fff;
+  padding:4px;
+  border:1px solid ccc;
+  box-shadow:0 0 4px rgba(0,0,0,.2);
+  font:12px/1 sans-serif;
+}
+.zoom-buttons button{
+  width:100%;
+  margin:2px 0;
+  cursor:pointer;
+}
+
