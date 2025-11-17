@@ -47,46 +47,50 @@ L.control.layers(
 /* ===== категории-контейнеры ===== */
 const combo = {};
 layers.forEach(l=>{
-  combo[l]={};
-  cats.forEach(c=> combo[l][c] = L.layerGroup());
+  combo[l] = {};
+  cats.forEach(c => combo[l][c] = L.layerGroup());
 });
 
 /* ===== иконки ===== */
 const icons = {
   buildings : L.icon({
-    iconUrl:'icons/marker-orange.png',
-    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize:[25,41], iconAnchor:[12,41], shadowSize:[41,41]
+    iconUrl   : 'icons/marker-orange.png',
+    shadowUrl : 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize  : [25,41], iconAnchor:[12,41], shadowSize:[41,41]
   }),
   landscape : L.icon({
-    iconUrl:'icons/marker-violet.png',
-    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize:[25,41], iconAnchor:[12,41], shadowSize:[41,41]
+    iconUrl   : 'icons/marker-violet.png',
+    shadowUrl : 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize  : [25,41], iconAnchor:[12,41], shadowSize:[41,41]
   })
 };
 
 /* ===== данные ===== */
-fetch('data/pointsObjects.geojson')   // новое имя
+fetch('data/pointsObjects.geojson')
   .then(r => r.json())
   .then(json => {
-    L.geoJSON(json, {
-      pointToLayer: (f, ll) => {
+
+    /* --- добавляем маркеры --- */
+    L.geoJSON(json,{
+      pointToLayer:(f,ll)=>{
         const cat = (f.properties.cat || 'buildings').toLowerCase();
-        return L.marker(ll, { icon: icons[cat] || icons.buildings });
+        return L.marker(ll,{icon:icons[cat] || icons.buildings});
       },
-      onEachFeature: (f, lyr) => {
+      onEachFeature:(f,lyr)=>{
         const p = f.properties || {};
-        lyr.bindPopup(
-          `${p.img ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>` : ''}
-           <div class="popup-title">${p.name || ''}</div>
-           ${p.descr ? `<div class="popup-text">${p.descr}</div>` : ''}`
-        );
+
+        const popup = `
+          ${p.img ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>` : ''}
+          <div class="popup-title">${p.name || ''}</div>
+          ${p.descr ? `<div class="popup-text">${p.descr}</div>` : ''}
+        `;
+        lyr.bindPopup(popup);
+
         const lay = (p.layer || 'genplan').toLowerCase();
         const cat = (p.cat   || 'buildings').toLowerCase();
         combo[lay][cat].addLayer(lyr);
       }
     });
-});
 
     /* --- контрол «Категории» --- */
     const catCtrl = L.control.layers(
@@ -95,19 +99,19 @@ fetch('data/pointsObjects.geojson')   // новое имя
         '<span class="legend-icon orange"></span> Здания'     : L.layerGroup(),
         '<span class="legend-icon violet"></span> Благоустр.' : L.layerGroup()
       },
-      {collapsed:false, sanitize:false}
+      { collapsed:false, sanitize:false }
     ).addTo(map);
 
     /* включаем галочки визуально */
-    Object.values(catCtrl._layers).forEach(o=> map.addLayer(o.layer));
+    Object.values(catCtrl._layers).forEach(o => map.addLayer(o.layer));
 
     /* стартовый набор маркеров */
-    cats.forEach(c=> map.addLayer(combo.genplan[c]));
+    cats.forEach(c => map.addLayer(combo.genplan[c]));
 
     /* смена подложки */
     map.on('baselayerchange', e=>{
-      cats.forEach(c=> map.removeLayer(combo[activeLayer][c]));
-      activeLayer = (e.name==='Транспорт') ? 'transport' : 'genplan';
+      cats.forEach(c => map.removeLayer(combo[activeLayer][c]));
+      activeLayer = (e.name === 'Транспорт') ? 'transport' : 'genplan';
       Object.values(catCtrl._layers).forEach(o=>{
         const c = o.name.includes('Здания') ? 'buildings' : 'landscape';
         if(map.hasLayer(o.layer)) map.addLayer(combo[activeLayer][c]);
@@ -128,16 +132,16 @@ fetch('data/pointsObjects.geojson')   // новое имя
 /* ===== лайтбокс ===== */
 function showLightbox(src){
   if(document.querySelector('.lb-overlay')) return;
-  const w=document.createElement('div');
-  w.className='lb-overlay';
+  const w = document.createElement('div');
+  w.className = 'lb-overlay';
   w.innerHTML = `<button class="lb-close">×</button><img src="${src}" alt="">`;
   document.body.appendChild(w);
-  w.querySelector('.lb-close').onclick = ()=> w.remove();
-  w.onclick = e=>{ if(e.target===w) w.remove(); };
+  w.querySelector('.lb-close').onclick = () => w.remove();
+  w.onclick = e => { if(e.target === w) w.remove(); };
 }
 map.on('popupopen', e=>{
   const img = e.popup._contentNode.querySelector('.popup-img');
-  if(img) img.addEventListener('click', ()=> showLightbox(img.src));
+  if(img) img.addEventListener('click', () => showLightbox(img.src));
 });
 
 
