@@ -5,7 +5,6 @@ const b1 = L.latLngBounds(
   [43.4106095120386968, 39.95101101168743],
   [43.4173891758608832, 39.96542148920572]
 );
-
 /* bounds участка-2 */
 const b2 = L.latLngBounds(
   [43.395917235035576 , 39.98298856123352],
@@ -13,9 +12,13 @@ const b2 = L.latLngBounds(
 );
 
 const map = L.map('map').fitBounds(b1,{padding:[40,40]});
-
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {maxZoom:19, attribution:'© OSM, Carto'}).addTo(map);
+
+/* === служебные массивы === */
+const layers = ['genplan','transport'];      // растровые слои
+const cats   = ['buildings','landscape'];    // категории
+let   activeLayer = 'genplan';               // стартовая подложка
 
 /* --- overlay-файлы --- */
 const mp1 = L.imageOverlay('images/Masterplan1New.webp', b1,{opacity:.8});
@@ -32,7 +35,7 @@ const gen1 = L.layerGroup([mp1]),
 /* показываем генплан-1 при загрузке */
 gen1.addTo(map);
 
-/* контрол «Слои / Участки» (теперь чекбоксы) */
+/* контрол «Слои / Участки» */
 L.control.layers(
   null,
   {
@@ -41,7 +44,7 @@ L.control.layers(
     'Участок 2 — генплан'  : gen2,
     'Участок 2 — транспорт': trn2
   },
-  { collapsed:false }
+  {collapsed:false}
 ).addTo(map);
 
 /* ===== категории-контейнеры ===== */
@@ -143,6 +146,7 @@ map.on('popupopen', e=>{
   const img = e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click', () => showLightbox(img.src));
 });
+
 
 
 
