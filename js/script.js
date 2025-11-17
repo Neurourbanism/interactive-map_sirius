@@ -23,9 +23,9 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   { maxZoom:19, attribution:'© OSM, Carto' }).addTo(map);
 
 /* --- overlay-файлы --- */
-const mp1 = L.imageOverlay('images/Masterplan1New.webp', b1,{opacity:.8});
+const mp1 = L.imageOverlay('images/Masterplan1Clip.webp', b1,{opacity:.8});
 const mp2 = L.imageOverlay('images/Masterplan2.webp',    b2,{opacity:.8});
-const tr1 = L.imageOverlay('images/Transport1New.webp',  b1,{opacity:.7});
+const tr1 = L.imageOverlay('images/Masterplan1Clip.webp',  b1,{opacity:.7});
 const tr2 = L.imageOverlay('images/Transport2.webp',     b2,{opacity:.7});
 
 /* слой по умолчанию */
@@ -155,6 +155,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
