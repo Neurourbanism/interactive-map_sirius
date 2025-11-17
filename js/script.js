@@ -66,26 +66,27 @@ const icons = {
 };
 
 /* ===== данные ===== */
-fetch('data/points.geojson')
-  .then(r=>r.json())
-  .then(json=>{
-    L.geoJSON(json,{
-      pointToLayer:(f,ll)=>{
-        const cat=(f.properties.cat||'buildings').toLowerCase();
-        return L.marker(ll,{icon:icons[cat]||icons.buildings});
+fetch('data/pointsObjects.geojson')   // новое имя
+  .then(r => r.json())
+  .then(json => {
+    L.geoJSON(json, {
+      pointToLayer: (f, ll) => {
+        const cat = (f.properties.cat || 'buildings').toLowerCase();
+        return L.marker(ll, { icon: icons[cat] || icons.buildings });
       },
-      onEachFeature:(f,lyr)=>{
-        const p=f.properties||{};
+      onEachFeature: (f, lyr) => {
+        const p = f.properties || {};
         lyr.bindPopup(
           `${p.img ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>` : ''}
-           <div class="popup-title">${p.name||''}</div>
+           <div class="popup-title">${p.name || ''}</div>
            ${p.descr ? `<div class="popup-text">${p.descr}</div>` : ''}`
         );
-        const lay=(p.layer||'genplan').toLowerCase();
-        const cat=(p.cat  ||'buildings').toLowerCase();
+        const lay = (p.layer || 'genplan').toLowerCase();
+        const cat = (p.cat   || 'buildings').toLowerCase();
         combo[lay][cat].addLayer(lyr);
       }
     });
+});
 
     /* --- контрол «Категории» --- */
     const catCtrl = L.control.layers(
@@ -138,6 +139,7 @@ map.on('popupopen', e=>{
   const img = e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click', ()=> showLightbox(img.src));
 });
+
 
 
 
