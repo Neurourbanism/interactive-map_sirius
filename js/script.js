@@ -12,8 +12,7 @@ const b2 = L.latLngBounds(
   [43.404276445202839 , 39.99223406925298]
 );
 
-const map = L.map('map')
-             .fitBounds(b1,{padding:[40,40]});      // стартуем с участка-1
+const map = L.map('map').fitBounds(b1,{padding:[40,40]});
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {maxZoom:19, attribution:'© OSM, Carto'}).addTo(map);
@@ -24,20 +23,20 @@ const tr1 = L.imageOverlay('images/Transport1New.webp',  b1,{opacity:.7});
 const mp2 = L.imageOverlay('images/Masterplan2.webp',    b2,{opacity:.8});
 const tr2 = L.imageOverlay('images/Transport2.webp',     b2,{opacity:.7});
 
-/* показываем генплан участка-1 по умолчанию */
+/* показываем генплан-1 по умолчанию */
 mp1.addTo(map);
 
 /* контрол «Слои» */
 L.control.layers(
-  { 'Участок 1 – генплан'  : mp1,
-    'Участок 1 – транспорт': tr1,
-    'Участок 2 – генплан'  : mp2,
-    'Участок 2 – транспорт': tr2 },
+  { 'Участок 1 — генплан'  : mp1,
+    'Участок 1 — транспорт': tr1,
+    'Участок 2 — генплан'  : mp2,
+    'Участок 2 — транспорт': tr2 },
   null,{collapsed:false}
 ).addTo(map);
 
-/* ── кнопки зума ───────────────────── */
-const ZoomCtrl = L.Control.extend({
+/* ── кнопки зума ──────────────── */
+const ZoomBox = L.Control.extend({
   onAdd(){
     const d = L.DomUtil.create('div','zoom-buttons');
     d.innerHTML =
@@ -46,11 +45,12 @@ const ZoomCtrl = L.Control.extend({
     return d;
   }
 });
-map.addControl(new ZoomCtrl({position:'topleft'}));
+map.addControl(new ZoomBox({position:'topleft'}));
 
-document.getElementById('toA').onclick = ()=> map.fitBounds(b1,{padding:[20,20]});
-document.getElementById('toB').onclick = ()=> map.fitBounds(b2,{padding:[20,20]});
-
+document.getElementById('toA').onclick = () =>
+  map.fitBounds(b1,{padding:[20,20]});
+document.getElementById('toB').onclick = () =>
+  map.fitBounds(b2,{padding:[20,20]});
 
 /* --- кастомные кнопки масштабирования --- */
 const ZoomCtrl = L.Control.extend({
@@ -166,6 +166,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
