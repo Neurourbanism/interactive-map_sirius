@@ -16,7 +16,7 @@ const b2 = L.latLngBounds(
 const fullBounds = b1.extend(b2);
 
 /* карта */
-const map = L.map('map').fitBounds(fullBounds,{padding:[60,60]});
+const map = L.map('map').fitBounds(fullBounds,{padding:[10,10]});
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {maxZoom:19, attribution:'© OSM, Carto'}).addTo(map);
@@ -138,6 +138,7 @@ map.on('popupopen', e=>{
   const img=e.popup._contentNode.querySelector('.popup-img');
   if(img) img.addEventListener('click',()=>showLightbox(img.src));
 });
+
 
 
 
