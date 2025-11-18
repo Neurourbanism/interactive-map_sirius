@@ -57,101 +57,110 @@ const icons = {
   })
 };
 
-/* ======================  загрузка точек  ====================== */
+/*****************************
+ *  Загрузка точек и pop-up
+ *****************************/
 fetch('data/pointsObjects.geojson')
   .then(r => r.json())
   .then(json => {
 
     L.geoJSON(json,{
-      pointToLayer:(f,ll)=>{
-        /* приводим cat к objects|landscape */
-        let cat = (f.properties.cat || 'objects').toLowerCase();
-        if (cat==='buildings'||cat==='buldings') cat='objects';
-        return L.marker(ll,{icon:icons[cat]||icons.objects});
+      pointToLayer:(f, ll)=>{
+        const cat = (f.properties.cat || 'objects').toLowerCase();
+        return L.marker(ll,{ icon: icons[cat] || icons.objects });
       },
 
-      onEachFeature:(f,lyr)=>{
-        const p = f.properties||{};
+      onEachFeature:(f, lyr)=>{
+        const p = f.properties || {};
 
-        /* ------ картинки (до трёх) ------ */
-        const imgs = [p.img, p.img2, p.img3].filter(Boolean);
-        const imgHtml = imgs.map(url=>`<img class="popup-img" src="${url}">`).join('');
+        /* --- картинки (до 3-х) --- */
+        const pics = ['img','img2','img3']
+          .filter(k => p[k])
+          .map(k => `<img class="popup-img" src="${p[k]}">`)
+          .join('');
 
-        /* ------ раскрывашка ТЭП ------ */
-        const tep = [];
-        if(p.buildarea) tep.push(`Площадь застройки — ${Number(p.buildarea).toLocaleString('ru-RU')} м²`);
-        if(p.grossarea) tep.push(`Общая площадь — ${Number(p.grossarea).toLocaleString('ru-RU')} м²`);
-        if(p.usefularea)tep.push(`Полезная площадь — ${Number(p.usefularea).toLocaleString('ru-RU')} м²`);
-        if(p.roofarea)  tep.push(`Эксплуатируемая кровля — ${Number(p.roofarea).toLocaleString('ru-RU')} м²`);
-        if(p.invest)    tep.push(`Инвестиции — ${p.invest} млрд ₽`);
-        if(p.implement) tep.push(`Механизм реализации — ${p.implement}`);
-        if(p.period)    tep.push(`Период строительства — ${p.period}`);
+        /* --- описание --- */
+        const descr = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
 
-        const tepBlock = tep.length
+        /* --- ТЭП --- */
+        const tepList = [];
+        if (p.buildarea ) tepList.push(`Площадь застройки — ${Number(p.buildarea ).toLocaleString('ru-RU')} м²`);
+        if (p.grossarea ) tepList.push(`Общая площадь — ${Number(p.grossarea ).toLocaleString('ru-RU')} м²`);
+        if (p.usefularea) tepList.push(`Полезная площадь — ${Number(p.usefularea).toLocaleString('ru-RU')} м²`);
+        if (p.roofarea ) tepList.push(`Площадь эксплуатируемой кровли — ${Number(p.roofarea ).toLocaleString('ru-RU')} м²`);
+        if (p.invest    ) tepList.push(`Объём инвестиций — ${p.invest} млрд ₽`);
+        if (p.implement ) tepList.push(`Механизм реализации — ${p.implement}`);
+        if (p.period    ) tepList.push(`Период строительства — ${p.period}`);
+
+        const tepBlock = tepList.length
           ? `<details class="popup-tep">
                <summary>ТЭП</summary>
-               <ul><li>${tep.join('</li><li>')}</li></ul>
+               <ul><li>${tepList.join('</li><li>')}</li></ul>
              </details>`
           : '';
 
-        /* ------ pop-up ------ */
+        /* --- html pop-up --- */
         lyr.bindPopup(`
-          ${imgHtml}
-          <div class="popup-title">${p.name||''}</div>
-          ${p.descr ? `<div class="popup-text">${p.descr}</div>` : ''}
-          ${tepBlock});
+          ${pics}
+          <div class="popup-title">${p.name || ''}</div>
+          ${descr}
+          ${tepBlock}
+        `);
 
-        /* ------ по категориям ------ */
-        const cat = (p.cat||'objects').toLowerCase();
+        /* --- кладём маркер в нужную категорию --- */
+        const cat = (p.cat || 'objects').toLowerCase();
         combo[cat].addLayer(lyr);
-
-        /* все маркеры сразу на карте (категории можно выключить) */
-        combo[cat].addTo(map);
       }
     });
 
-    /* ===== контрол категорий ===== */
-    L.control.layers(
-      null,
-      {
-        '<span class="legend-icon orange"></span> Объекты'        : combo.objects,
-        '<span class="legend-icon violet"></span> Благоустройство': combo.landscape
-      },
-      { collapsed:false , sanitize:false }
-    ).addTo(map);
-});
+    /* включаем категории, отмечаем чекбоксы визуально */
+    cats.forEach(c=>{
+      map.addLayer(combo[c]);
+      catCtrl._layers   // технический доступ к элементам контрола
+        && Object.values(catCtrl._layers).forEach(o=>{
+             if (o.name.includes(c==='objects' ? 'Объекты' : 'Благоустр') )
+               map.addLayer(o.layer);
+           });
+    });
+  });
 
-/* ======================  лайтбокс для любой картинки  ====================== */
+
+/*****************************
+ *  Лайтбокс
+ *****************************/
 function showLightbox(src){
-  if(document.querySelector('.lb-overlay')) return;
-  const w = L.DomUtil.create('div','lb-overlay');
-  w.innerHTML = <button class="lb-close">×</button><img src="${src}" alt="">;
+  if(document.querySelector('.lb-overlay')) return;   // не открывать второй раз
+  const w = document.createElement('div');
+  w.className = 'lb-overlay';
+  w.innerHTML = `<button class="lb-close">×</button><img src="${src}" alt="">`;
   document.body.appendChild(w);
   w.querySelector('.lb-close').onclick = ()=> w.remove();
-  w.onclick = e=>{ if(e.target===w) w.remove(); };
+  w.onclick = e => { if (e.target === w) w.remove(); };
 }
-/* делегирование: ловим клики на .popup-img */
 map.on('popupopen', e=>{
-  e.popup._contentNode.querySelectorAll('.popup-img')
-    .forEach(img => img.addEventListener('click', ()=>showLightbox(img.src), {once:true}));
+  const img = e.popup._contentNode.querySelectorAll('.popup-img');
+  img.forEach(i => i.addEventListener('click', ()=> showLightbox(i.src), {once:true}));
 });
 
-/* ======================  кнопки зума  ====================== */
+
+/*****************************
+ *  Кнопки зума
+ *****************************/
 const ZoomCtrl = L.Control.extend({
   onAdd(){
-    const d=L.DomUtil.create('div','zoom-buttons');
+    const d = L.DomUtil.create('div','zoom-buttons');
     d.innerHTML =
-      '<button id="toA">▣ Участок 1</button>'+
-      '<button id="toB">▣ Участок 2</button>'+
+      '<button id="toA">▣ Участок 1</button>' +
+      '<button id="toB">▣ Участок 2</button>' +
       '<button id="toBoth">▣ Оба</button>';
     return d;
   }
 });
 map.addControl(new ZoomCtrl({position:'topleft'}));
 
-document.getElementById('toA').onclick    = ()=> map.fitBounds(b1,{padding:[20,20]});
-document.getElementById('toB').onclick    = ()=> map.fitBounds(b2,{padding:[20,20]});
-document.getElementById('toBoth').onclick = ()=> map.fitBounds(b1.extend(b2),{padding:[60,60]});
+document.getElementById('toA').onclick   = ()=> map.fitBounds(b1,{padding:[20,20]});
+document.getElementById('toB').onclick   = ()=> map.fitBounds(b2,{padding:[20,20]});
+document.getElementById('toBoth').onclick= ()=> map.fitBounds(b1.extend(b2),{padding:[60,60]});
 
 
 
