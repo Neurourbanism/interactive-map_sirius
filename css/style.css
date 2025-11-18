@@ -1,4 +1,4 @@
-/* ===== базовые размеры/шрифты ===== */
+/* ===== базовые размеры ===== */
 html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 map{height:100vh;width:100vw}
 
@@ -12,11 +12,10 @@ map{height:100vh;width:100vw}
 
 /* ===== легенда ===== */
 .legend-icon{display:inline-block;width:12px;height:12px;margin-right:4px;border-radius:2px;vertical-align:middle}
-.legend-icon.orange {background:f47b20}
-.legend-icon.violet {background:7851a9}
+.legend-icon.orange {background:f47b20;}
+.legend-icon.violet {background:7851a9;}
 
-/* ===== кнопки зума ===== */
-.zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.2);font:12px/1 sans-serif}
+/* ===== zoom-buttons ===== */.zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.2);font:12px/1 sans-serif}
 .zoom-buttons button{width:100%;margin:2px 0;cursor:pointer}
 
 /* ===== лайтбокс ===== */
@@ -25,19 +24,12 @@ map{height:100vh;width:100vw}
 .lb-close{position:absolute;top:20px;right:30px;font:32px/1 sans-serif;color:fff;background:none;border:none;cursor:pointer}
 .lb-close:hover{opacity:.8}
 
-/* ===== мобильный адаптив ===== */
-@media (max-width:768px){
-  .leaflet-popup-content{width:90vw!important;max-width:90vw!important}
-  .popup-img{width:45vw;max-width:45vw}
-  .popup-title{font-size:17px}
-  .popup-text{font-size:15px}
-  .leaflet-top.leaflet-left,
-  .leaflet-top.leaflet-right{top:70px}
-  .zoom-buttons button{padding:6px 4px}
-  .leaflet-control-layers-list{column-count:2;column-gap:8px}
+/* ===== мобильный “лайт” ===== */
+@media (max-width:600px){
+  .leaflet-popup-content{max-width:90vw}
+  .popup-img{width:120px}
+  .zoom-buttons{font-size:11px}
 }
 
-/* ===== подпись / ссылка ===== */
-.map-credit{position:absolute;right:8px;bottom:8px;z-index:999;font:12px/1 sans-serif;background:fff;padding:3px 6px;border:1px solid ccc;border-radius:4px;box-shadow:0 0 4px rgba(0,0,0,.2)}
-.map-credit a{color:0074d9;text-decoration:none}
-.map-credit a:hover{text-decoration:underline}
+/* ===== логотип ===== */
+.map-logo{position:absolute;right:8px;bottom:4px;z-index:500}
