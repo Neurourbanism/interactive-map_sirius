@@ -79,59 +79,58 @@ const catCtrl = L.control.layers(
   {collapsed:false, sanitize:false}
 ).addTo(map);
 
-/*******
-    Загрузка точек
-*******/
+/* ===== данные ===== */
 fetch('data/pointsObjects.geojson')
   .then(r => r.json())
   .then(json => {
-    L.geoJSON(json, {
-      pointToLayer: (f, ll) => {
-        let cat = (f.properties.cat || 'buildings').toLowerCase();
-        if (cat === 'buldings') cat = 'buildings';   // правим опечатку
-        return L.marker(ll, { icon: icons[cat] });
+
+    L.geoJSON(json,{
+      pointToLayer:(f,ll)=>{
+        const cat = (f.properties.cat || 'buildings').toLowerCase();
+        return L.marker(ll,{ icon: icons[cat] || icons.buildings });
       },
 
-      onEachFeature: (f, lyr) => {
+      onEachFeature:(f,lyr)=>{
         const p = f.properties || {};
 
-        /* картинка */
-        const img = p.img
-          ? `<img class="popup-img" src="${p.img}" style="cursor:zoom-in"><br>`
-          : '';
-
-        /* описание */
-        const descr = p.descr
-          ? `<div class="popup-text">${p.descr}</div>`
-          : '';
-
-        /* ТЭП */
-        const tep = [];
-        if (p.buildarea) tep.push(`Площадь застройки — ${Number(p.buildarea).toLocaleString('ru-RU')} м²`);
-        if (p.grossarea) tep.push(`Общая площадь — ${Number(p.grossarea).toLocaleString('ru-RU')} м²`);
-
-        const tepBlock = tep.length
-          ? `<details class="popup-tep">
-               <summary>ТЭП</summary>
-               <ul><li>${tep.join('</li><li>')}</li></ul>
-             </details>`
-          : '';
-
-        /* pop-up HTML */
-        const html = `
-          ${img}
-          <div class="popup-title">${p.name || ''}</div>
-          ${descr}
-          ${tepBlock}
+        /* --- картинки (до двух) --- */
+        const pics = `
+          ${p.img  ? `<img class="popup-img" src="${p.img}"  style="cursor:zoom-in">` : ''}
+          ${p.img2 ? `<img class="popup-img" src="${p.img2}" style="cursor:zoom-in">` : ''}
+          ${ (p.img || p.img2) ? '<br>' : '' }
         `;
-        lyr.bindPopup(html);
 
-        /* кладём маркер в группу категории */
+        /* --- ТЭП выпадашкой --- */
+        let tep = '';
+        if (p.buildarea || p.grossarea || p.usefulsrea || p.roofarea ||
+            p.invest || p.implement || p.period){
+          tep = `
+          <details class="popup-tep"><summary>ТЭП</summary><ul>
+            ${p.buildarea ? `<li>Площадь застройки — ${p.buildarea.toLocaleString('ru-RU')} м²</li>`:''}
+            ${p.grossarea ? `<li>Общая площадь — ${p.grossarea.toLocaleString('ru-RU')} м²</li>`:''}
+            ${p.usefulsrea? `<li>Полезная площадь — ${p.usefulsrea.toLocaleString('ru-RU')} м²</li>`:''}
+            ${p.roofarea  ? `<li>Экспл. кровля — ${p.roofarea.toLocaleString('ru-RU')} м²</li>`:''}
+            ${p.invest    ? `<li>Инвестиции — ${p.invest} млрд ₽</li>`:''}
+            ${p.implement ? `<li>Механизм — ${p.implement}</li>`:''}
+            ${p.period    ? `<li>Период — ${p.period}</li>`:''}
+          </ul></details>`;
+        }
+
+        lyr.bindPopup(`
+          ${pics}
+          <div class="popup-title">${p.name||''}</div>
+          ${p.descr ? `<div class="popup-text">${p.descr}</div>` : ''}
+          ${tep}
+        `);
+
+        /* — раскладываем по категориям — */
         const cat = (p.cat || 'buildings').toLowerCase();
         combo[cat].addLayer(lyr);
       }
     });
-  });
+
+  });  // конец fetch
+
 
 /*******
       Лайтбокс
@@ -166,5 +165,6 @@ const ZoomCtrl = L.Control.extend({
 map.addControl(new ZoomCtrl({ position: 'topleft' }));
 document.getElementById('toA').onclick = () => map.fitBounds(b1, { padding:[20,20] });
 document.getElementById('toB').onclick = () => map.fitBounds(b2, { padding:[20,20] });
+
 
 
