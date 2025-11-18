@@ -15,7 +15,8 @@ map{height:100vh;width:100vw}
 .legend-icon.orange {background:f47b20;}
 .legend-icon.violet {background:7851a9;}
 
-/* ===== zoom-buttons ===== */.zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.2);font:12px/1 sans-serif}
+/* ===== zoom-buttons ===== */
+.zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.2);font:12px/1 sans-serif}
 .zoom-buttons button{width:100%;margin:2px 0;cursor:pointer}
 
 /* ===== лайтбокс ===== */
@@ -33,3 +34,4 @@ map{height:100vh;width:100vw}
 
 /* ===== логотип ===== */
 .map-logo{position:absolute;right:8px;bottom:4px;z-index:500}
+.map-logo a{color:555;text-decoration:none;font:12px/1.2 sans-serif}
