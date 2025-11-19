@@ -13,37 +13,16 @@ const genSketch = L.layerGroup([
   L.imageOverlay('images/Masterplan2.webp'   , b2,{opacity:.85})
 ]).addTo(map);                     // видно при старте
 
-/********** 2. транспорт-слои (5 GeoJSON) **********/
-const transportGroup = L.layerGroup();        // чек-бокс «Транспорт»
-
-const loadLine =(url,color,w=2,extra={})=>{
- fetch(url).then(r=>r.json()).then(j=>{
-   L.geoJSON(j,{style:{color,weight:w,...extra}}).addTo(transportGroup);
- });
-};
-const loadPoint=(url,color,r=6)=>{
- fetch(url).then(r=>r.json()).then(j=>{
-   L.geoJSON(j,{
-     pointToLayer:(_,ll)=>L.circleMarker(ll,{
-       radius:r,color:'000',weight:1,fillColor:color,fillOpacity:.85
-     })
-   }).addTo(transportGroup);
- });
-};
-
-loadLine ('data/bike.geojson'    , '00a4ff', 3);                     // вело
-loadPoint('data/busstop.geojson' , 'ff66cc', 5);                     // остановки
-loadPoint('data/entrance.geojson', 'ff0000', 5);                     // въезды
-loadLine ('data/parking.geojson' , 'aaaaaa', 1.5,{dashArray:'4 3'}); // парковки
-loadPoint('data/railway2.geojson', '8b4513', 6);                     // ж/д
 
 /********** 3. чек-боксы слоёв **********/
 L.control.layers(
   null,
   { 'Эскиз'    : genSketch,
-    'Транспорт': transportGroup },
+     },
   {collapsed:false}
-).addTo(map);/********** 4. кнопки зума **********/
+).addTo(map);
+
+/********** 4. кнопки зума **********/
 const ZoomCtrl=L.Control.extend({
   onAdd(){
     const d=L.DomUtil.create('div','zoom-buttons');
@@ -131,4 +110,5 @@ br.href='https://t.me/neurourbanism_blog';
 br.target='_blank';
 br.textContent='Neurourbanism ©';
 document.body.appendChild(br);
+
 
