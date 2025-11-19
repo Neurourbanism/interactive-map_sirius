@@ -13,55 +13,37 @@ const genSketch = L.layerGroup([
   L.imageOverlay('images/Masterplan2.webp'   , b2,{opacity:.85})
 ]).addTo(map);                     // видно при старте
 
-/* ---------- группа «Транспорт» ---------- */
-const transportGroup = L.layerGroup().addTo(map);
+/********** 2. транспорт-слои (5 GeoJSON) **********/
+const transportGroup = L.layerGroup();        // чек-бокс «Транспорт»
 
-/* линии */
-const loadLine = (url, color, width=2, extra={}) => {
-  fetch(url).then(r=>r.json()).then(j=>{
-    L.geoJSON(j, {
-      style: { color:''+color, weight:width, ...extra } // ←  + цвет
-    }).addTo(transportGroup);
-  });
+const loadLine =(url,color,w=2,extra={})=>{
+ fetch(url).then(r=>r.json()).then(j=>{
+   L.geoJSON(j,{style:{color,weight:w,...extra}}).addTo(transportGroup);
+ });
+};
+const loadPoint=(url,color,r=6)=>{
+ fetch(url).then(r=>r.json()).then(j=>{
+   L.geoJSON(j,{
+     pointToLayer:(_,ll)=>L.circleMarker(ll,{
+       radius:r,color:'000',weight:1,fillColor:color,fillOpacity:.85
+     })
+   }).addTo(transportGroup);
+ });
 };
 
-/* точки */
-const loadPoint = (url, color, r=6) => {
-  fetch(url).then(r=>r.json()).then(j=>{
-    L.geoJSON(j, {
-      pointToLayer:(_,ll)=>L.circleMarker(ll,{
-        radius:r,
-        color:'000',
-        weight:1,
-        fillColor:''+color,                              // ←  + цвет
-        fillOpacity:.9
-      })
-    }).addTo(transportGroup);
-  });
-};
+loadLine ('data/bike.geojson'    , '00a4ff', 3);                     // вело
+loadPoint('data/busstop.geojson' , 'ff66cc', 5);                     // остановки
+loadPoint('data/entrance.geojson', 'ff0000', 5);                     // въезды
+loadLine ('data/parking.geojson' , 'aaaaaa', 1.5,{dashArray:'4 3'}); // парковки
+loadPoint('data/railway2.geojson', '8b4513', 6);                     // ж/д
 
-/* вызываем */
-loadLine ('data/bike.geojson'    , '00a4ff', 2.5);               // велополосы
-loadPoint('data/busstop.geojson' , 'ff66cc', 5 );                // остановки
-loadPoint('data/entrance.geojson', 'ff0000', 5 );                // въезды
-loadLine ('data/parking.geojson' , '666666', 2 , {dashArray:'4 3'}); // парковки
-loadPoint('data/railway2.geojson', '8b4513', 6 );                // ж/д станции
-
-/* ---------- чек-боксы под-слоёв транспорта ---------- */
+/********** 3. чек-боксы слоёв **********/
 L.control.layers(
   null,
-  {
-    '<span class="legend-icon" style="background:00a4ff"></span> Велодорожки'   : transportGroup.getLayers()[0],
-    '<span class="legend-icon" style="background:ff66cc"></span> Остановки ОТ' : transportGroup.getLayers()[1],
-    '<span class="legend-icon" style="background:ff0000"></span> Въезды/выезды': transportGroup.getLayers()[2],
-    '<span class="legend-icon" style="background:666666"></span> Парковки'     : transportGroup.getLayers()[3],
-    '<span class="legend-icon" style="background:8b4513"></span> Ж/д станции'  : transportGroup.getLayers()[4]
-  },
-  { collapsed:false, sanitize:false, position:'topright' }
-).addTo(map);
-
-
-/********** 4. кнопки зума **********/
+  { 'Эскиз'    : genSketch,
+    'Транспорт': transportGroup },
+  {collapsed:false}
+).addTo(map);/********** 4. кнопки зума **********/
 const ZoomCtrl=L.Control.extend({
   onAdd(){
     const d=L.DomUtil.create('div','zoom-buttons');
@@ -149,4 +131,3 @@ br.href='https://t.me/neurourbanism_blog';
 br.target='_blank';
 br.textContent='Neurourbanism ©';
 document.body.appendChild(br);
-
