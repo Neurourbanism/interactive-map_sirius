@@ -11,7 +11,7 @@ map{height:100vh;width:100vw}
 .popup-tep li{list-style:disc}
 
 /* ===== цветные квадраты в легенде ===== */
-.legend-icon{display:inline-block;width:12px;height:12px;margin-right:4px;border-radius:2px;vertical-align:middle}
+.legend-icon{display:inline-block;width:12px;height:12px;margin-right:4px;border-radius:2px;vertical-align:middle;border:1px solid transparent;box-sizing:border-box}
 .legend-icon.orange {background:f47b20}
 .legend-icon.violet {background:7851a9}
 .legend-icon.blue   {background:#2a6af7}
@@ -19,6 +19,13 @@ map{height:100vh;width:100vw}
 .legend-icon.red    {background:#ff4f4f}
 .legend-icon.gray   {background:#8f8f8f}
 .legend-icon.brown  {background:#a15d26}
+.legend-icon.scarlet-solid{background:#ff3b30;border-color:#ff3b30}
+.legend-icon.scarlet-dash{background-image:repeating-linear-gradient(90deg,#ff3b30 0 6px,transparent 6px 10px);border-color:#ff3b30}
+.legend-icon.green{background:#2cc26d}
+.legend-icon.yellow{background:#f5c342}
+.legend-icon.navy{background:#1b3a6f}
+.legend-icon.sky{background:#5bd4ff}
+.legend-icon.blue-outline{background:transparent;border:2px solid #2a6af7}
 
 /* ===== кнопки зума ===== */
 .zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.25);font:12px/1 sans-serif}
@@ -51,6 +58,20 @@ map{height:100vh;width:100vw}
   .leaflet-control-layers{font-size:12px}
   .popup-img{width:120px}
   .leaflet-popup-content{margin:6px 8px;max-width:240px}
+}
+
+@media(max-width:640px){
+  .leaflet-control-layers{
+    width:calc(100% - 16px);
+    max-width:none;
+  }
+  .leaflet-control-layers-expanded{
+    max-height:70vh;
+    overflow:auto;
+  }
+  .transport-group{padding:10px 8px}
+  .transport-group__title{font-size:13px}
+  .leaflet-control-layers-overlays .transport-layer-toggle{font-size:13px;gap:8px}
 }
 
 

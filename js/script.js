@@ -19,33 +19,164 @@ const transportLayers = {};
 const transportCheckboxes = {};
 const transportVisibility = {};
 const transportState = {master:false};
+const mergeTolerance = 0.00015;
+
+const cloneCoords = coords => coords.map(pair=>[pair[0],pair[1]]);
+const collectLineStringCoords = featureCollection=>{
+  const coordsCollection = [];
+  (featureCollection.features||[]).forEach(feature=>{
+    const geometry = feature.geometry;
+    if(!geometry) return;
+    if(geometry.type==='LineString'){
+      coordsCollection.push(cloneCoords(geometry.coordinates));
+      return;
+    }
+    if(geometry.type==='MultiLineString'){
+      geometry.coordinates.forEach(part=>coordsCollection.push(cloneCoords(part)));
+    }
+  });
+  return coordsCollection;
+};
+
+const mergeLineSegments = (coordsSets,tolerance)=>{
+  if(!coordsSets.length) return [];
+  const toleranceSq = tolerance*tolerance;
+  const arePointsClose = (a,b)=>{
+    const dx=a[0]-b[0];
+    const dy=a[1]-b[1];
+    return (dx*dx+dy*dy)<=toleranceSq;
+  };
+  const merged = [];
+  const used = new Array(coordsSets.length).fill(false);
+  for(let i=0;i<coordsSets.length;i++){
+    if(used[i]) continue;
+    let current = coordsSets[i].slice();
+    used[i]=true;
+    let changed = true;
+    while(changed){
+      changed=false;
+      for(let j=0;j<coordsSets.length;j++){
+        if(used[j]) continue;
+        const candidate = coordsSets[j];
+        const firstCurrent=current[0];
+        const lastCurrent=current[current.length-1];
+        const firstCandidate=candidate[0];
+        const lastCandidate=candidate[candidate.length-1];
+        if(arePointsClose(lastCurrent, firstCandidate)){
+          current=current.concat(candidate.slice(1));
+        }else if(arePointsClose(lastCurrent, lastCandidate)){
+          current=current.concat(candidate.slice(0,-1).reverse());
+        }else if(arePointsClose(firstCurrent, lastCandidate)){
+          current=candidate.concat(current.slice(1));
+        }else if(arePointsClose(firstCurrent, firstCandidate)){
+          current=candidate.slice().reverse().concat(current.slice(1));
+        }else{
+          continue;
+        }
+        used[j]=true;
+        changed=true;
+      }
+    }
+    merged.push(current);
+  }
+  return merged;
+};
+
+const mergeLineStringFeatures = (featureCollection,tolerance)=>{
+  const coordsSets = collectLineStringCoords(featureCollection);
+  if(!coordsSets.length) return featureCollection;
+  const mergedCoords = mergeLineSegments(coordsSets,tolerance);
+  if(!mergedCoords.length) return featureCollection;
+  const mergedFeatures = mergedCoords.map(coords=>({
+    type:'Feature',
+    properties:{},
+    geometry:{type:'LineString',coordinates:coords}
+  }));
+  const preservedOthers = (featureCollection.features||[]).filter(feature=>{
+    const geomType = feature?.geometry?.type;
+    return geomType && geomType!=='LineString' && geomType!=='MultiLineString';
+  });
+  return {
+    type:'FeatureCollection',
+    features:[...mergedFeatures,...preservedOthers]
+  };
+};
+
 const transportConfigs = [
   {
-    id:'bike',
-    url:'data/bike.geojson',
-    label:'Велоинфраструктура',
-    legendClass:'blue',
+    id:'bikeExist',
+    url:'data/bikeExist.geojson',
+    label:'Сущ велодорожки',
+    legendClass:'scarlet-solid',
     geometry:'line',
-    color:'#2a6af7',
-    weight:4
+    color:'#ff3b30',
+    weight:5,
+    mergeLines:true
   },
   {
-    id:'busstop',
-    url:'data/busstop.geojson',
-    label:'Остановки общественного транспорта',
-    legendClass:'pink',
-    geometry:'point',
-    color:'#ff6ec7',
-    radius:6
+    id:'bikeProject',
+    sources:['data/bikeNew.geojson','data/bikeNew2.geojson'],
+    label:'Проект велодорожки',
+    legendClass:'scarlet-dash',
+    geometry:'line',
+    color:'#ff3b30',
+    weight:5,
+    dashArray:'10 6',
+    mergeLines:true
   },
   {
-    id:'entrance',
-    url:'data/entrance.geojson',
-    label:'Въезды и выезды',
+    id:'busstopDelete',
+    url:'data/busstopDelete.geojson',
+    label:'Отмен остановки',
     legendClass:'red',
     geometry:'point',
     color:'#ff4f4f',
     radius:6
+  },
+  {
+    id:'busstopExist',
+    url:'data/busstopExist.geojson',
+    label:'Сущ остановки',
+    legendClass:'pink',
+    geometry:'point',
+    color:'#ff6ec7',
+    radius:7
+  },
+  {
+    id:'busstopNew',
+    url:'data/busstopNew.geojson',
+    label:'Проект остановки',
+    legendClass:'green',
+    geometry:'point',
+    color:'#2cc26d',
+    radius:7
+  },
+  {
+    id:'entrance',
+    url:'data/entrance.geojson',
+    label:'Въезды/выезды',
+    legendClass:'yellow',
+    geometry:'point',
+    color:'#f5c342',
+    radius:7
+  },
+  {
+    id:'railwayExist',
+    url:'data/railwayExist.geojson',
+    label:'Сущ ж/д',
+    legendClass:'navy',
+    geometry:'point',
+    color:'#1b3a6f',
+    radius:8
+  },
+  {
+    id:'railwayProject',
+    url:'data/railwayNew.geojson',
+    label:'Проект ж/д',
+    legendClass:'sky',
+    geometry:'point',
+    color:'#5bd4ff',
+    radius:8
   },
   {
     id:'parking',
@@ -54,16 +185,18 @@ const transportConfigs = [
     legendClass:'gray',
     geometry:'polygon',
     color:'#8f8f8f',
-    fillOpacity:.65
+    fillOpacity:.5
   },
   {
-    id:'railway2',
-    url:'data/railway2.geojson',
-    label:'Ж/д станции',
-    legendClass:'brown',
-    geometry:'point',
-    color:'#a15d26',
-    radius:7
+    id:'radius',
+    url:'data/radius.geojson',
+    label:'Доступность остановок',
+    legendClass:'blue-outline',
+    geometry:'polygon',
+    color:'#2a6af7',
+    weight:3,
+    strokeOnly:true,
+    dashArray:'6 6'
   }
 ];
 
@@ -73,20 +206,23 @@ const createTransportLayer = config => {
       style:{
         color:config.color,
         weight:config.weight||3,
-        opacity:.95,
+        opacity:config.opacity??.95,
         lineCap:'round',
-        lineJoin:'round'
+        lineJoin:'round',
+        dashArray:config.dashArray||null
       },
-      smoothFactor:1
+      smoothFactor:config.smoothFactor??1
     });
   }
   if(config.geometry==='polygon'){
     return L.geoJSON(null,{
       style:{
         color:config.color,
-        weight:1,
-        fillColor:config.color,
-        fillOpacity:config.fillOpacity??.6
+        weight:config.weight||1,
+        dashArray:config.dashArray||null,
+        fillColor:config.strokeOnly ? 'transparent' : (config.fillColor||config.color),
+        fillOpacity:config.strokeOnly ? 0 : (config.fillOpacity??.6),
+        opacity:config.opacity??1
       }
     });
   }
@@ -95,11 +231,44 @@ const createTransportLayer = config => {
       return L.circleMarker(latLng,{
         radius:config.radius||6,
         color:config.color,
-        weight:1,
-        fillColor:config.color,
-        fillOpacity:.85
+        weight:config.pointStrokeWeight||1,
+        fillColor:config.fillColor||config.color,
+        fillOpacity:config.fillOpacity??.85,
+        opacity:config.opacity??1
       });
     }
+  });
+};
+
+const getSourcesList = config => {
+  if(Array.isArray(config.sources) && config.sources.length) return config.sources;
+  if(config.url) return [config.url];
+  return [];
+};
+
+const loadTransportData = config => {
+  const sources = getSourcesList(config);
+  if(!sources.length) return Promise.resolve({type:'FeatureCollection',features:[]});
+  return Promise.all(
+    sources.map(src=>fetch(src).then(res=>res.json()))
+  ).then(datasets=>{
+    const combined = {
+      type:'FeatureCollection',
+      features:[]
+    };
+    datasets.forEach(data=>{
+      if(!data) return;
+      if(data.type==='FeatureCollection'){
+        combined.features.push(...(data.features||[]));
+        return;
+      }
+      if(data.type==='Feature' && data.geometry){
+        combined.features.push(data);
+      }
+    });
+    if(!combined.features.length) return combined;
+    if(config.mergeLines) return mergeLineStringFeatures(combined, mergeTolerance);
+    return combined;
   });
 };
 
@@ -206,10 +375,12 @@ buildTransportPanel();
 transportConfigs.forEach(cfg=>{
   const layer = createTransportLayer(cfg);
   transportLayers[cfg.id] = layer;
-  fetch(cfg.url)
-    .then(res=>res.json())
+  loadTransportData(cfg)
     .then(data=>{
       layer.addData(data);
+      if(cfg.geometry==='line' && typeof layer.bringToFront==='function'){
+        layer.bringToFront();
+      }
       if(transportState.master && transportVisibility[cfg.id]){
         transportGroup.addLayer(layer);
       }
