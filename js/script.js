@@ -194,9 +194,10 @@ const transportConfigs = [
     legendClass:'blue-outline',
     geometry:'polygon',
     color:'#2a6af7',
-    weight:3,
-    strokeOnly:true,
-    dashArray:'6 6'
+    fillColor:'#bfe6ff',
+    fillOpacity:.06,
+    weight:.8,
+    opacity:.35
   }
 ];
 
