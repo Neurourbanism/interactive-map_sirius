@@ -13,14 +13,222 @@ const genSketch = L.layerGroup([
   L.imageOverlay('images/Masterplan2.webp'   , b2,{opacity:.85})
 ]).addTo(map);                     // видно при старте
 
+const TRANSPORT_LABEL = 'Транспорт';
+const transportGroup = L.layerGroup();
+const transportLayers = {};
+const transportCheckboxes = {};
+const transportVisibility = {};
+const transportState = {master:false};
+const transportConfigs = [
+  {
+    id:'bike',
+    url:'data/bike.geojson',
+    label:'Велоинфраструктура',
+    legendClass:'blue',
+    geometry:'line',
+    color:'#2a6af7',
+    weight:4
+  },
+  {
+    id:'busstop',
+    url:'data/busstop.geojson',
+    label:'Остановки общественного транспорта',
+    legendClass:'pink',
+    geometry:'point',
+    color:'#ff6ec7',
+    radius:6
+  },
+  {
+    id:'entrance',
+    url:'data/entrance.geojson',
+    label:'Въезды и выезды',
+    legendClass:'red',
+    geometry:'point',
+    color:'#ff4f4f',
+    radius:6
+  },
+  {
+    id:'parking',
+    url:'data/parking.geojson',
+    label:'Паркинг',
+    legendClass:'gray',
+    geometry:'polygon',
+    color:'#8f8f8f',
+    fillOpacity:.65
+  },
+  {
+    id:'railway2',
+    url:'data/railway2.geojson',
+    label:'Ж/д станции',
+    legendClass:'brown',
+    geometry:'point',
+    color:'#a15d26',
+    radius:7
+  }
+];
 
-/********** 3. чек-боксы слоёв **********/
-L.control.layers(
+const createTransportLayer = config => {
+  if(config.geometry==='line'){
+    return L.geoJSON(null,{
+      style:{
+        color:config.color,
+        weight:config.weight||3,
+        opacity:.95,
+        lineCap:'round',
+        lineJoin:'round'
+      },
+      smoothFactor:1
+    });
+  }
+  if(config.geometry==='polygon'){
+    return L.geoJSON(null,{
+      style:{
+        color:config.color,
+        weight:1,
+        fillColor:config.color,
+        fillOpacity:config.fillOpacity??.6
+      }
+    });
+  }
+  return L.geoJSON(null,{
+    pointToLayer:(_feature,latLng)=>{
+      return L.circleMarker(latLng,{
+        radius:config.radius||6,
+        color:config.color,
+        weight:1,
+        fillColor:config.color,
+        fillOpacity:.85
+      });
+    }
+  });
+};
+
+const transportControl = L.control.layers(
   null,
-  { 'Эскиз'    : genSketch,
-     },
+  {
+    'Эскиз':genSketch,
+    [TRANSPORT_LABEL]:transportGroup
+  },
   {collapsed:false}
 ).addTo(map);
+
+const applyTransportVisibility = () => {
+  if(!transportState.master) return;
+  transportGroup.clearLayers();
+  transportConfigs.forEach(cfg=>{
+    if(!transportVisibility[cfg.id]) return;
+    const layer = transportLayers[cfg.id];
+    if(!layer) return;
+    transportGroup.addLayer(layer);
+  });
+};
+
+const toggleSingleTransportLayer = (layerId, isEnabled) => {
+  if(!transportState.master) return;
+  const layer = transportLayers[layerId];
+  if(!layer) return;
+  const hasLayer = transportGroup.hasLayer(layer);
+  if(isEnabled && !hasLayer){
+    transportGroup.addLayer(layer);
+    return;
+  }
+  if(!isEnabled && hasLayer){
+    transportGroup.removeLayer(layer);
+  }
+};
+
+const setTransportMasterState = isEnabled => {
+  if(transportState.master===isEnabled) return;
+  transportState.master = isEnabled;
+  Object.values(transportCheckboxes).forEach(input=>{
+    input.disabled = !isEnabled;
+    input.classList.toggle('transport-layer-toggle__checkbox--disabled',!isEnabled);
+  });
+  if(isEnabled){
+    applyTransportVisibility();
+    return;
+  }
+  transportGroup.clearLayers();
+};
+
+const handleTransportLayerChange = event => {
+  const input = event.currentTarget;
+  if(!input) return;
+  const layerId = input.dataset.layerId;
+  if(!layerId) return;
+  transportVisibility[layerId] = input.checked;
+  toggleSingleTransportLayer(layerId, input.checked);
+};
+
+const buildTransportPanel = () => {
+  const container = transportControl.getContainer();
+  if(!container) return;
+  const overlaysList = container.querySelector('.leaflet-control-layers-overlays');
+  if(!overlaysList) return;
+  const transportPanel = document.createElement('div');
+  transportPanel.className = 'transport-group';
+  transportPanel.setAttribute('role','group');
+  transportPanel.setAttribute('aria-label','Слои транспорта');
+  const title = document.createElement('div');
+  title.className = 'transport-group__title';
+  title.textContent = 'Легенда транспорта';
+  transportPanel.appendChild(title);
+  transportConfigs.forEach(cfg=>{
+    transportVisibility[cfg.id] = true;
+    const row = document.createElement('label');
+    row.className = 'transport-layer-toggle';
+    row.setAttribute('tabindex','0');
+    row.setAttribute('aria-label',cfg.label);
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.layerId = cfg.id;
+    checkbox.checked = true;
+    checkbox.disabled = true;
+    checkbox.className = 'transport-layer-toggle__checkbox';
+    checkbox.classList.add('transport-layer-toggle__checkbox--disabled');
+    checkbox.addEventListener('change',handleTransportLayerChange);
+    transportCheckboxes[cfg.id] = checkbox;
+    const legend = document.createElement('span');
+    legend.className = `legend-icon ${cfg.legendClass}`;
+    const text = document.createElement('span');
+    text.className = 'transport-layer-toggle__label';
+    text.textContent = cfg.label;
+    row.appendChild(checkbox);
+    row.appendChild(legend);
+    row.appendChild(text);
+    transportPanel.appendChild(row);
+  });
+  overlaysList.appendChild(transportPanel);
+};
+
+buildTransportPanel();
+
+transportConfigs.forEach(cfg=>{
+  const layer = createTransportLayer(cfg);
+  transportLayers[cfg.id] = layer;
+  fetch(cfg.url)
+    .then(res=>res.json())
+    .then(data=>{
+      layer.addData(data);
+      if(transportState.master && transportVisibility[cfg.id]){
+        transportGroup.addLayer(layer);
+      }
+    })
+    .catch(err=>console.error(`Не удалось загрузить слой ${cfg.id}`,err));
+});
+
+const handleOverlayAdd = event => {
+  if(event.name!==TRANSPORT_LABEL) return;
+  setTransportMasterState(true);
+};
+
+const handleOverlayRemove = event => {
+  if(event.name!==TRANSPORT_LABEL) return;
+  setTransportMasterState(false);
+};
+
+map.on('overlayadd',handleOverlayAdd);
+map.on('overlayremove',handleOverlayRemove);
 
 /********** 4. кнопки зума **********/
 const ZoomCtrl=L.Control.extend({
