@@ -11,15 +11,14 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
 const genSketch = L.layerGroup([
   L.imageOverlay('images/Masterplan1New.webp', b1,{opacity:.85}),
   L.imageOverlay('images/Masterplan2.webp'   , b2,{opacity:.85})
-]).addTo(map);             // виден при старте
+]).addTo(map);                     // видно при старте
 
-/********** 2. транспорт-слои **********/
-const transportGroup = L.layerGroup();      // пока не на карте
+/********** 2. транспорт-слои (5 GeoJSON) **********/
+const transportGroup = L.layerGroup();        // чек-бокс «Транспорт»
 
-/* loaders */
-const loadLine =(url,color,width=2,extra={})=>{
+const loadLine =(url,color,w=2,extra={})=>{
  fetch(url).then(r=>r.json()).then(j=>{
-   L.geoJSON(j,{style:{color,weight:width,...extra}}).addTo(transportGroup);
+   L.geoJSON(j,{style:{color,weight:w,...extra}}).addTo(transportGroup);
  });
 };
 const loadPoint=(url,color,r=6)=>{
@@ -32,11 +31,11 @@ const loadPoint=(url,color,r=6)=>{
  });
 };
 
-loadLine ( 'data/bike.geojson'    , '00a4ff', 3   );              // вело (толще/ярче)
-loadPoint( 'data/busstop.geojson' , 'ff66cc', 5   );              // остановки
-loadPoint( 'data/entrance.geojson', 'ff0000', 5   );              // въезды
-loadLine ( 'data/parking.geojson' , 'aaaaaa', 1.5 , {dashArray:'4 3'}).eachLayer(l=>l.setStyle({className:'parking-fill'})); // парковки
-loadPoint( 'data/railway2.geojson', '8b4513', 6   );              // ж/д
+loadLine ('data/bike.geojson'    , '00a4ff', 3);                     // вело
+loadPoint('data/busstop.geojson' , 'ff66cc', 5);                     // остановки
+loadPoint('data/entrance.geojson', 'ff0000', 5);                     // въезды
+loadLine ('data/parking.geojson' , 'aaaaaa', 1.5,{dashArray:'4 3'}); // парковки
+loadPoint('data/railway2.geojson', '8b4513', 6);                     // ж/д
 
 /********** 3. чек-боксы слоёв **********/
 L.control.layers(
@@ -70,7 +69,6 @@ const icons={
     iconSize:[25,41],iconAnchor:[12,41]})
 };
 
-/* контрол категорий */
 L.control.layers(
   null,
   {
@@ -80,7 +78,7 @@ L.control.layers(
   {collapsed:false, sanitize:false}
 ).addTo(map);
 
-/********** 6. GeoJSON-точки **********/
+/********** 6. точки-объекты **********/
 fetch('data/pointsObjects.geojson')
  .then(r=>r.json())
  .then(json=>{
@@ -93,7 +91,7 @@ fetch('data/pointsObjects.geojson')
      onEachFeature:(f,lyr)=>{
        const p=f.properties||{};
        const imgs=[p.img,p.img2,p.img3].filter(Boolean)
-        .map(src=>`<img class="popup-img" src="${src}" style="cursor:zoom-in">`).join('<br>');
+         .map(src=>`<img class="popup-img" src="${src}" style="cursor:zoom-in">`).join('<br>');
        const descr = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
        const tep=[];
        if(p.buildarea)  tep.push(`Площадь застройки — ${(+p.buildarea).toLocaleString('ru-RU')} м²`);
