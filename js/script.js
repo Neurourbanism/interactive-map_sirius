@@ -486,7 +486,7 @@ function showLightbox(src){
 }
 map.on('popupopen',e=>{
  e.popup._contentNode.querySelectorAll('.popup-img')
-   .forEach(img=>img.addEventListener('click',()=>showLightbox(img.src),{once:true}));
+   .forEach(img=>img.addEventListener('click',()=>showLightbox(img.src)));
 });
 
 /********** 8. бренд-ссылка **********/
