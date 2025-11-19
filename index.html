@@ -2,19 +2,30 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>Interactive map</title>
+  <title>Interactive Map</title>
 
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/style.css?v=2">
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet CSS + ваш стиль -->
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="css/style.css"                     rel="stylesheet">
 </head>
 <body>
+
+  <!-- карта -->
   <div id="map" style="height:100vh"></div>
 
-  <a id="logo" href="https://t.me/neurourbanism_blog" target="_blank">Neurourbanism</a>
+  <!-- Leaflet core -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- если нужен повернутый оверлей – оставляем -->
+  <script src="https://unpkg.com/leaflet-imageoverlay-rotated"></script>
+  <!-- ваш код -->
+  <script src="js/script.js"></script>
 
-  <script src="js/script.js?v=2"></script>
+  <!-- подпись / «бренд-плашка» вместо флага  -->
+  <a  class="brand-link"
+      href="https://t.me/neurourbanism_blog"
+      target="_blank" rel="noopener"
+      title="Neurourbanism blog">Neurourbanism</a>
 </body>
 </html>
+
+
