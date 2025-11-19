@@ -439,35 +439,40 @@ L.control.layers(
 ).addTo(map);
 
 /********** 6. точки-объекты **********/
-fetch('data/pointsObjects.geojson')
- .then(r=>r.json())
- .then(json=>{
-   L.geoJSON(json,{
-     pointToLayer:(f,ll)=>{
-       let cat=(f.properties.cat||'buildings').toLowerCase();
-       if(cat==='buldings') cat='buildings';
-       return L.marker(ll,{icon:icons[cat]});
-     },
-     onEachFeature:(f,lyr)=>{
-       const p=f.properties||{};
-       const imgs=[p.img,p.img2,p.img3].filter(Boolean)
-         .map(src=>`<img class="popup-img" src="${src}" style="cursor:zoom-in">`).join('<br>');
-       const descr = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
-       const tep=[];
-       if(p.buildarea)  tep.push(`Площадь застройки — ${(+p.buildarea).toLocaleString('ru-RU')} м²`);
-       if(p.grossarea)  tep.push(`Общая площадь — ${(+p.grossarea).toLocaleString('ru-RU')} м²`);
-       if(p.usefularea) tep.push(`Полезная площадь — ${(+p.usefularea).toLocaleString('ru-RU')} м²`);
-       if(p.roofarea)   tep.push(`Экспл. кровля — ${(+p.roofarea).toLocaleString('ru-RU')} м²`);
-       if(p.invest)     tep.push(`Инвестиции — ${p.invest} млрд ₽`);
-       if(p.implement)  tep.push(`Механизм реализации — ${p.implement}`);
-       if(p.period)     tep.push(`Период строительства — ${p.period}`);
-       const tepBlock = tep.length
-         ? `<details class="popup-tep"><summary>ТЭП</summary><ul><li>${tep.join('</li><li>')}</li></ul></details>` : '';
-       lyr.bindPopup(`${imgs}<div class="popup-title">${p.name||''}</div>${descr}${tepBlock}`);
-       combo[(p.cat||'buildings').toLowerCase()].addLayer(lyr);
-     }
+map.whenReady(()=>{
+  fetch('data/pointsObjects.geojson')
+   .then(r=>r.json())
+   .then(json=>{
+     L.geoJSON(json,{
+       pointToLayer:(f,ll)=>{
+         let cat=(f.properties.cat||'buildings').toLowerCase();
+         if(cat==='buldings') cat='buildings';
+         return L.marker(ll,{icon:icons[cat]});
+       },
+       onEachFeature:(f,lyr)=>{
+         const p=f.properties||{};
+         const imgs=[p.img,p.img2,p.img3].filter(Boolean)
+           .map(src=>`<img class="popup-img" src="${src}" style="cursor:zoom-in">`).join('<br>');
+         const descr = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
+         const tep=[];
+         if(p.buildarea)  tep.push(`Площадь застройки — ${(+p.buildarea).toLocaleString('ru-RU')} м²`);
+         if(p.grossarea)  tep.push(`Общая площадь — ${(+p.grossarea).toLocaleString('ru-RU')} м²`);
+         if(p.usefularea) tep.push(`Полезная площадь — ${(+p.usefularea).toLocaleString('ru-RU')} м²`);
+         if(p.roofarea)   tep.push(`Экспл. кровля — ${(+p.roofarea).toLocaleString('ru-RU')} м²`);
+         if(p.invest)     tep.push(`Инвестиции — ${p.invest} млрд ₽`);
+         if(p.implement)  tep.push(`Механизм реализации — ${p.implement}`);
+         if(p.period)     tep.push(`Период строительства — ${p.period}`);
+         const tepBlock = tep.length
+           ? `<details class="popup-tep"><summary>ТЭП</summary><ul><li>${tep.join('</li><li>')}</li></ul></details>` : '';
+         lyr.bindPopup(`${imgs}<div class="popup-title">${p.name||''}</div>${descr}${tepBlock}`);
+         combo[(p.cat||'buildings').toLowerCase()].addLayer(lyr);
+       }
+     });
+     requestAnimationFrame(()=>{
+       map.invalidateSize();
+     });
    });
- });
+});
 
 /********** 7. лайтбокс **********/
 function showLightbox(src){
