@@ -13,21 +13,6 @@ const genSketch = L.layerGroup([
   L.imageOverlay('images/Masterplan2.webp'   , b2,{opacity:.85})
 ]).addTo(map);                     // видно при старте
 
-const greeneryLayer = L.geoJSON(null,{
-  style:()=>{
-    return {
-      color:'transparent',
-      weight:0,
-      fillColor:'#d8f3ce',
-      fillOpacity:.35
-    };
-  }
-}).addTo(map);
-
-fetch('data/зелень.geojson')
-  .then(res=>res.json())
-  .then(data=>greeneryLayer.addData(data))
-  .catch(err=>console.error('Не удалось загрузить слой зелени',err));
 
 const TRANSPORT_LABEL = 'Транспорт';
 const transportGroup = L.layerGroup();
@@ -211,9 +196,9 @@ const transportConfigs = [
     geometry:'polygon',
     color:'transparent',
     fillColor:'#bfe6ff',
-    fillOpacity:.06,
-    weight:0,
-    opacity:0
+    fillOpacity:.1,
+    weight:1,
+    opacity:0.45
   }
 ];
 
