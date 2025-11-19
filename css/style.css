@@ -1,41 +1,32 @@
-/* ===== базовая сетка ===== */
 html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 map{height:100vh;width:100vw}
 
-/* ===== pop-up ===== */
-.popup-img{width:150px;max-width:100%;display:block;margin:0 0 6px;border-radius:4px}
-.popup-title{margin:.2em 0;font:700 15px/1.25 inherit}
+/* ---- POP-UP ---- */
+.popup-img{width:160px;max-width:100%;display:block;margin:0 0 6px;border-radius:4px}
+.popup-title{margin:.2em 0;font-weight:700;font-size:15px}
 .popup-text{font-size:14px;line-height:1.35;margin:.2em 0 .6em}
 .popup-tep summary{font-weight:600;cursor:pointer}
 .popup-tep ul{margin:.3em 0 0 1.2em;padding:0;font-size:14px}
 .popup-tep li{list-style:disc}
 
-/* ===== цветные квадраты в легенде ===== */
+/* ---- legend (категории) ---- */
 .legend-icon{display:inline-block;width:12px;height:12px;margin-right:4px;border-radius:2px;vertical-align:middle}
-.legend-icon.orange {background:f47b20}
-.legend-icon.violet {background:7851a9}
+.legend-icon.orange  {background:f47b20}
+.legend-icon.violet  {background:7851a9}
 
-/* ===== кнопки зума ===== */
-.zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.25);font:12px/1 sans-serif}
+/* ---- zoom buttons ---- */
+.zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.2);font:12px/1 sans-serif}
 .zoom-buttons button{width:100%;margin:2px 0;cursor:pointer}
 
-/* ===== лайтбокс ===== */
+/* ---- lightbox ---- */
 .lb-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center}
 .lb-overlay img{max-width:90%;max-height:90%;box-shadow:0 0 20px rgba(0,0,0,.5)}
 .lb-close{position:absolute;top:20px;right:30px;font:32px/1 sans-serif;color:fff;background:none;border:none;cursor:pointer}
 .lb-close:hover{opacity:.8}
 
-/* ===== стили доп-слоёв ===== */
-.parking-fill{fill:aaaaaa;fill-opacity:.7;stroke:666;stroke-width:1}
-
-/* ===== бренд-ссылка — перекрываем логотип Leaflet ===== */
-.brand-link{position:fixed;right:10px;bottom:10px;z-index:10001;background:34495e;color:fff;text-decoration:none;padding:2px 6px;font:12px/1 sans-serif;border-radius:3px}
-.brand-link:hover{opacity:.85}
-.leaflet-control-attribution{display:none!important}
-
-/* ===== mobile tweak (< 768 px) ===== */
-@media(max-width:768px){
-  .leaflet-control-layers{font-size:12px}
+/* ---- мобильный ≤480 px ---- */
+@media(max-width:480px){
+  .leaflet-control{font-size:13px}
   .popup-img{width:120px}
-  .leaflet-popup-content{margin:6px 8px;max-width:240px}
+  .zoom-buttons{font-size:11px}
 }
