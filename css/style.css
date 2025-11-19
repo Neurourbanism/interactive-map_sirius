@@ -1,39 +1,41 @@
+/* ===== базовая сетка ===== */
 html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 map{height:100vh;width:100vw}
 
-/* pop-up */
-.popup-img{width:150px;max-width:100%;display:block;margin:0 0 6px;border-radius:3px}
-.popup-title{font-weight:700;font-size:15px;margin:.2em 0}
+/* ===== pop-up ===== */
+.popup-img{width:150px;max-width:100%;display:block;margin:0 0 6px;border-radius:4px}
+.popup-title{margin:.2em 0;font:700 15px/1.25 inherit}
 .popup-text{font-size:14px;line-height:1.35;margin:.2em 0 .6em}
-.popup-tep summary{cursor:pointer;font-weight:600}
+.popup-tep summary{font-weight:600;cursor:pointer}
 .popup-tep ul{margin:.3em 0 0 1.2em;padding:0;font-size:14px}
 .popup-tep li{list-style:disc}
 
-/* легенда цветных квадратиков */
+/* ===== цветные квадраты в легенде ===== */
 .legend-icon{display:inline-block;width:12px;height:12px;margin-right:4px;border-radius:2px;vertical-align:middle}
-.legend-icon.orange{background:f47b20}
-.legend-icon.violet{background:7851a9}
+.legend-icon.orange {background:f47b20}
+.legend-icon.violet {background:7851a9}
 
-/* кнопки зума */
+/* ===== кнопки зума ===== */
 .zoom-buttons{background:fff;padding:4px;border:1px solid ccc;box-shadow:0 0 4px rgba(0,0,0,.25);font:12px/1 sans-serif}
 .zoom-buttons button{width:100%;margin:2px 0;cursor:pointer}
 
-/* лайтбокс */
-.lb-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.8);z-index:10000}
-.lb-overlay img{max-width:90%;max-height:90%;box-shadow:0 0 18px rgba(0,0,0,.6)}
+/* ===== лайтбокс ===== */
+.lb-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center}
+.lb-overlay img{max-width:90%;max-height:90%;box-shadow:0 0 20px rgba(0,0,0,.5)}
 .lb-close{position:absolute;top:20px;right:30px;font:32px/1 sans-serif;color:fff;background:none;border:none;cursor:pointer}
 .lb-close:hover{opacity:.8}
 
-/* логотип внизу справа вместо “Leaflet” */
-logo{
-  position:absolute;right:8px;bottom:8px;z-index:9999;
-  background:fff;padding:2px 6px;border:1px solid ccc;font:11px/1 sans-serif;
-  color:000;text-decoration:none;border-radius:3px;opacity:.85
-}
-logo:hover{opacity:1}
+/* ===== стили доп-слоёв ===== */
+.parking-fill{fill:aaaaaa;fill-opacity:.7;stroke:666;stroke-width:1}
 
-/* адаптация ≤ 600 px */
-@media(max-width:600px){
-  .leaflet-top.leaflet-left .leaflet-control{margin-top:60px}
+/* ===== бренд-ссылка — перекрываем логотип Leaflet ===== */
+.brand-link{position:fixed;right:10px;bottom:10px;z-index:10001;background:34495e;color:fff;text-decoration:none;padding:2px 6px;font:12px/1 sans-serif;border-radius:3px}
+.brand-link:hover{opacity:.85}
+.leaflet-control-attribution{display:none!important}
+
+/* ===== mobile tweak (< 768 px) ===== */
+@media(max-width:768px){
+  .leaflet-control-layers{font-size:12px}
   .popup-img{width:120px}
+  .leaflet-popup-content{margin:6px 8px;max-width:240px}
 }
