@@ -25,7 +25,7 @@ const mergeTolerance = 0.00015;
 
 const cloneCoords = coords => coords.map(pair=>[pair[0],pair[1]]);
 
-// --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ---
+// --- ИСПРАВЛЕННАЯ ФУНКЦИЯ collectLineStringCoords ---
 const collectLineStringCoords = featureCollection => {
     const coordsCollection = [];
     (featureCollection.features || []).forEach(feature => {
@@ -441,13 +441,7 @@ null,
 
 /********** 6. точки-объекты **********/
 
-// --- НОВЫЕ КОНСТАНТЫ И ФУНКЦИИ ДЛЯ GOOGLE ТАБЛИЦЫ ---
-// Обновленная ссылка на опубликованную CSV таблицу
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtvrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv';
-
-// SPREADSHEET_ID и MAP_EXPORT_GID больше не нужны, так как URL прямой
-// const SPREADSHEET_ID = '1rJGF3iZWRufKMm7vVHDnSj76RsFBtKikDu7Wr755QfE';
-// const MAP_EXPORT_GID = '569805773'; 
 
 /**
  * Преобразует ссылку на Google Диск из формата "просмотр" в формат "прямая загрузка".
@@ -456,18 +450,21 @@ const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT
  */
 function getDirectDriveLink(viewLink) {
     if (!viewLink || typeof viewLink !== 'string') return '';
-    const match = viewLink.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/view/);
+    // Убедимся, что ссылка не пустая и не содержит только пробелы
+    const trimmedLink = viewLink.trim();
+    if (trimmedLink === '') return '';
+
+    const match = trimmedLink.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/view/);
     if (match && match[1]) {
         const fileId = match[1];
         return `https://drive.google.com/uc?export=download&id=${fileId}`;
     }
     // Если ссылка уже прямая или другого формата, возвращаем как есть
-    return viewLink;
+    return trimmedLink;
 }
 
 /**
- * Загружает CSV данные по URL и парсит их в массив объектов.
- * Предполагает, что первая строка CSV - это заголовки.
+ * Загружает CSV данные по URL и парсит их в массив объектов с помощью PapaParse.
  * @param {string} url - URL CSV файла.
  * @returns {Promise<Array<Object>>} - Промис, который разрешается массивом объектов.
  */
@@ -477,29 +474,34 @@ async function fetchAndParseCsv(url) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
     const csvText = await response.text();
-    const lines = csvText.split('\n').filter(line => line.trim() !== ''); // Фильтруем пустые строки
-    if (lines.length === 0) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim()); // Обрезаем пробелы у заголовков
-    const data = [];
-
-    for (let i = 1; i < lines.length; i++) {
-        // Простая обработка CSV, которая может быть не идеальной для сложных случаев с запятыми внутри кавычек.
-        // Для более надежного парсинга можно использовать библиотеку типа PapaParse.
-        const values = lines[i].split(',');
-        const row = {};
-        for (let j = 0; j < headers.length; j++) {
-            let value = values[j] ? values[j].trim() : '';
-            // Попытка преобразовать числовые значения
-            if (!isNaN(value) && value !== '') {
-                row[headers[j]] = parseFloat(value);
-            } else {
-                row[headers[j]] = value;
+    return new Promise((resolve, reject) => {
+        Papa.parse(csvText, {
+            header: true, // Первая строка - заголовки
+            dynamicTyping: true, // Автоматически преобразовывать числа и булевы значения
+            skipEmptyLines: true, // Пропускать пустые строки
+            complete: function(results) {
+                // PapaParse уже хорошо обрабатывает данные, но мы можем дополнительно обрезать пробелы у строковых значений
+                const processedData = results.data.map(row => {
+                    const newRow = {};
+                    for (const key in row) {
+                        let value = row[key];
+                        // Обрезаем пробелы у строковых значений, но оставляем числа/булевы как есть
+                        if (typeof value === 'string') {
+                            newRow[key] = value.trim();
+                        } else {
+                            newRow[key] = value;
+                        }
+                    }
+                    return newRow;
+                });
+                resolve(processedData);
+            },
+            error: function(err) {
+                reject(err);
             }
-        }
-        data.push(row);
-    }
-    return data;
+        });
+    });
 }
 
 /**
@@ -509,6 +511,8 @@ async function fetchAndParseCsv(url) {
  */
 function convertToGeoJSON(csvData) {
     const features = csvData.map(row => {
+        // PapaParse с dynamicTyping должен уже преобразовать lat/lng в числа,
+        // но на всякий случай еще раз проверяем и приводим к float.
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.lng);
 
@@ -539,7 +543,6 @@ function convertToGeoJSON(csvData) {
 }
 
 map.whenReady(()=>{
-    // --- ЗАМЕНА ЗАГРУЗКИ GEOJSON НА ЗАГРУЗКУ ИЗ GOOGLE ТАБЛИЦЫ ---
     fetchAndParseCsv(GOOGLE_SHEET_CSV_URL)
         .then(csvData => {
             const geojsonData = convertToGeoJSON(csvData);
@@ -557,21 +560,31 @@ map.whenReady(()=>{
                     const p=f.properties||{};
 
                     // Обработка изображений: используем новую функцию для получения прямых ссылок
-                    const imgs=[p.img,p.img2,p.img3].filter(Boolean)
-                        .map(src=>`<img class="popup-img" src="${getDirectDriveLink(src)}" style="cursor:zoom-in">`).join('<br>');
-                    const descr = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
+                    // Фильтруем пустые или содержащие только пробелы ссылки
+                    const imgs = [p.img, p.img2, p.img3]
+                        .filter(src => src && String(src).trim() !== '') // Убеждаемся, что src не пустой и не состоит из пробелов
+                        .map(src => `<img class="popup-img" src="${getDirectDriveLink(src)}" style="cursor:zoom-in">`)
+                        .join('<br>');
+
+                    // Убедимся, что p.name и p.descr корректно используются
+                    const title = p.name || ''; // Название объекта
+                    const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : ''; // Описание
+
                     const tep=[];
                     // Все эти данные теперь берутся из соответствующих колонок таблицы
-                    if(p.buildarea)  tep.push(`Площадь застройки — ${(+p.buildarea).toLocaleString('ru-RU')} м²`);
-                    if(p.grossarea)  tep.push(`Общая площадь — ${(+p.grossarea).toLocaleString('ru-RU')} м²`);
-                    if(p.usefularea) tep.push(`Полезная площадь — ${(+p.usefularea).toLocaleString('ru-RU')} м²`);
-                    if(p.roofarea)   tep.push(`Экспл. кровля — ${(+p.roofarea).toLocaleString('ru-RU')} м²`);
-                    if(p.invest)     tep.push(`Инвестиции — ${p.invest} млрд ₽`);
+                    // PapaParse с dynamicTyping должен помочь с преобразованием в числа
+                    if(p.buildarea && !isNaN(p.buildarea))  tep.push(`Площадь застройки — ${(+p.buildarea).toLocaleString('ru-RU')} м²`);
+                    if(p.grossarea && !isNaN(p.grossarea))  tep.push(`Общая площадь — ${(+p.grossarea).toLocaleString('ru-RU')} м²`);
+                    if(p.usefularea && !isNaN(p.usefularea)) tep.push(`Полезная площадь — ${(+p.usefularea).toLocaleString('ru-RU')} м²`);
+                    if(p.roofarea && !isNaN(p.roofarea))   tep.push(`Экспл. кровля — ${(+p.roofarea).toLocaleString('ru-RU')} м²`);
+                    if(p.invest && !isNaN(p.invest))     tep.push(`Инвестиции — ${(+p.invest).toLocaleString('ru-RU')} млрд ₽`); // Добавил toLocaleString для invest
                     if(p.implement)  tep.push(`Механизм реализации — ${p.implement}`);
                     if(p.period)     tep.push(`Период строительства — ${p.period}`);
+
                     const tepBlock = tep.length
                         ? `<details class="popup-tep"><summary>ТЭП</summary><ul><li>${tep.join('</li><li>')}</li></ul></details>` : '';
-                    lyr.bindPopup(`${imgs}<div class="popup-title">${p.name||''}</div>${descr}${tepBlock}`);
+                    
+                    lyr.bindPopup(`${imgs}<div class="popup-title">${title}</div>${description}${tepBlock}`);
 
                     // Добавляем слой в соответствующую группу combo
                     const targetCat = (p.cat || 'buildings').toLowerCase();
@@ -582,7 +595,7 @@ map.whenReady(()=>{
                         combo.buildings.addLayer(lyr); // Запасной вариант, если категория неизвестна
                     }
                 }
-            }); // Убираем .addTo(map), так как маркеры добавляются в combo группы
+            });
         })
         .catch(error => {
             console.error('Ошибка при загрузке или обработке данных из Google Таблицы:', error);
