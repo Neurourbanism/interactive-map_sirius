@@ -24,22 +24,23 @@ const transportState = {master:false};
 const mergeTolerance = 0.00015;
 
 const cloneCoords = coords => coords.map(pair=>[pair[0],pair[1]]);
-const collectLineStringCoords = featureCollection=>{
-const coordsCollection = [];
-(featureCollection.features||[]).forEach(feature=>{
-const geometry = feature.geometry;
-if(!geometry) return;
-if(geometry.type==='LineString'){
-coordsCollection.push(cloneCoords(geometry.coordinates));
-}
-return;
-if(geometry.type==='MultiLineString'){
-geometry.coordinates.forEach(part=>coordsCollection.push(cloneCoords(part)));
+
+// --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ---
+const collectLineStringCoords = featureCollection => {
+    const coordsCollection = [];
+    (featureCollection.features || []).forEach(feature => {
+        const geometry = feature.geometry;
+        if (!geometry) return; // Пропускаем фичи без геометрии
+
+        if (geometry.type === 'LineString') {
+            coordsCollection.push(cloneCoords(geometry.coordinates));
+        } else if (geometry.type === 'MultiLineString') {
+            geometry.coordinates.forEach(part => coordsCollection.push(cloneCoords(part)));
+        }
+    });
+    return coordsCollection;
 };
-}
-});
-return coordsCollection;
-};
+// --- КОНЕЦ ИСПРАВЛЕННОЙ ФУНКЦИИ ---
 
 const mergeLineSegments = (coordsSets,tolerance)=>{
 if(!coordsSets.length) return [];
