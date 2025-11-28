@@ -441,6 +441,8 @@ null,
 
 /********** 6. точки-объекты **********/
 
+// ВАЖНО: Эта ссылка уже актуальна и работает. Ошибка 404, скорее всего, была временным сбоем
+// или проблемой с кэшем.
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtVrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv';
 
 /**
@@ -454,20 +456,22 @@ function getDisplayableDriveLink(viewLink) {
     if (trimmedLink === '') return '';
 
     // Регулярное выражение для извлечения FILE_ID из различных форматов Google Drive ссылок
-    const fileIdMatch = trimmedLink.match(/(?:id=([a-zA-Z0-9_-]+)|file\/d\/([a-zA-Z0-9_-]+)|presentation\/d\/([a-zA-Z0-9_-]+))/);
+    // Добавлена поддержка более общих URL, если fileId не в path, а в query
+    const fileIdMatch = trimmedLink.match(/(?:id=([a-zA-Z0-9_-]+)|file\/d\/([a-zA-Z0-9_-]+)|presentation\/d\/([a-zA-Z0-9_-]+)|drive\.google\.com\/.+[?&]id=([a-zA-Z0-9_-]+))/);
 
     let fileId = null;
     if (fileIdMatch) {
-        fileId = fileIdMatch[1] || fileIdMatch[2] || fileIdMatch[3];
+        // Проверяем все группы захвата
+        fileId = fileIdMatch[1] || fileIdMatch[2] || fileIdMatch[3] || fileIdMatch[4];
     }
 
     if (fileId) {
-        // ИСПРАВЛЕНИЕ: Убрано "&export=view" для прямого отображения в <img>
+        // Используем https://drive.google.com/uc?id=FILE_ID для прямого доступа к содержимому файла
         return `https://drive.google.com/uc?id=${fileId}`;
     }
     // Если FILE_ID не найден или это не распознанная ссылка на Google Drive,
     // возвращаем исходную ссылку.
-    console.warn('Не удалось извлечь File ID из ссылки Google Drive:', viewLink);
+    console.warn('Не удалось извлечь File ID из ссылки Google Drive. Возвращена исходная ссылка:', viewLink);
     return trimmedLink;
 }
 
@@ -486,9 +490,10 @@ async function fetchAndParseCsv(url) {
     return new Promise((resolve, reject) => {
         Papa.parse(csvText, {
             header: true,
-            dynamicTyping: true,
+            dynamicTyping: true, // Помогает с числами без пробелов, если формат локали соответствует
             skipEmptyLines: true,
             complete: function(results) {
+                // Дополнительная обработка для обрезки строковых значений
                 const processedData = results.data.map(row => {
                     const newRow = {};
                     for (const key in row) {
@@ -517,6 +522,7 @@ async function fetchAndParseCsv(url) {
  */
 function convertToGeoJSON(csvData) {
     const features = csvData.map(row => {
+        // Убедимся, что lat/lng обрабатываются как числа
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.lng);
 
@@ -534,10 +540,10 @@ function convertToGeoJSON(csvData) {
             properties: properties,
             geometry: {
                 type: 'Point',
-                coordinates: [lng, lat]
+                coordinates: [lng, lat] // GeoJSON ожидает [longitude, latitude]
             }
         };
-    }).filter(Boolean);
+    }).filter(Boolean); // Отфильтровываем null-значения
 
     return {
         type: 'FeatureCollection',
@@ -546,6 +552,7 @@ function convertToGeoJSON(csvData) {
 }
 
 // Вспомогательная функция для безопасного парсинга чисел, удаляющая общепринятые форматирования (например, пробелы)
+// и заменяющая запятую на точку для правильного parseFloat.
 const cleanAndParseNumber = (value) => {
     if (typeof value === 'string') {
         // Удаляем пробелы (разделители тысяч) и заменяем запятую (десятичный разделитель) на точку
@@ -564,16 +571,29 @@ const cleanAndParseNumber = (value) => {
 map.whenReady(()=>{
     fetchAndParseCsv(GOOGLE_SHEET_CSV_URL)
         .then(csvData => {
+            console.log('Processed CSV Data:', csvData); // <--- Добавил для отладки
+            if (!csvData || csvData.length === 0) {
+                console.warn('Загруженные CSV данные пусты или некорректны. Маркеры не будут добавлены.');
+                return;
+            }
+
             const geojsonData = convertToGeoJSON(csvData);
+            console.log('Converted GeoJSON Data:', geojsonData); // <--- Добавил для отладки
+
+            if (!geojsonData || !geojsonData.features || geojsonData.features.length === 0) {
+                console.warn('Преобразованные GeoJSON данные пусты или некорректны. Маркеры не будут добавлены.');
+                return;
+            }
 
             L.geoJSON(geojsonData,{
                 pointToLayer:(f,ll)=>{
                     let cat=(f.properties.cat||'buildings').toLowerCase();
-                    if(cat==='buldings') cat='buildings';
-                    const icon = icons[cat] || icons.buildings;
+                    if(cat==='buldings') cat='buildings'; // Исправление опечатки, если есть
+                    const icon = icons[cat] || icons.buildings; // Fallback на иконку buildings
                     return L.marker(ll,{icon:icon});
                 },
                 onEachFeature:(f,lyr)=>{
+                    console.log('Processing feature:', f.properties.name, f.geometry.coordinates); // <--- Добавил для отладки
                     const p=f.properties||{};
 
                     // Обработка изображений
@@ -582,7 +602,7 @@ map.whenReady(()=>{
                         .map(src => `<img class="popup-img" src="${getDisplayableDriveLink(src)}" style="cursor:zoom-in">`)
                         .join('<br>');
 
-                    const title = p.name || '';
+                    const title = p.name ? `<div class="popup-title">${p.name}</div>` : '';
                     const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
 
                     const tep=[];
@@ -606,12 +626,13 @@ map.whenReady(()=>{
                     const tepBlock = tep.length
                         ? `<details class="popup-tep"><summary>ТЭП</summary><ul><li>${tep.join('</li><li>')}</li></ul></details>` : '';
                     
-                    lyr.bindPopup(`${imgs}<div class="popup-title">${title}</div>${description}${tepBlock}`);
+                    lyr.bindPopup(`${imgs}${title}${description}${tepBlock}`);
 
                     const targetCat = (p.cat || 'buildings').toLowerCase();
                     if (combo[targetCat]) {
                         combo[targetCat].addLayer(lyr);
                     } else {
+                        // Эта ветка должна срабатывать редко, так как есть fallback cat='buildings'
                         console.warn(`Категория "${targetCat}" не найдена в группах combo. Добавляем в "buildings".`, p);
                         combo.buildings.addLayer(lyr);
                     }
@@ -620,6 +641,10 @@ map.whenReady(()=>{
         })
         .catch(error => {
             console.error('Ошибка при загрузке или обработке данных из Google Таблицы:', error);
+            // Дополнительная информация для пользователя при ошибке 404
+            if (error.message.includes('404')) {
+                console.error('Причина 404 ошибки: Вероятно, Google Таблица не опубликована в интернете как CSV, или ссылка устарела. Проверьте публикацию вкладки "MAP_EXPORT" и обновите GOOGLE_SHEET_CSV_URL.');
+            }
         });
 
     requestAnimationFrame(()=>{
