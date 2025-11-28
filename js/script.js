@@ -448,24 +448,32 @@ null,
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtvrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv'; // <--- ОБНОВИТЕ ЭТУ ССЫЛКУ!
 // =========================================================================================
 
+/* ---------- Drive-helpers ---------- */
 /*
- * Преобразует ссылку Google Drive в прямой thumbnail-URL, который
- * браузер <img> всегда может показать (без HTML-промежутков).
- * Работает для любого «file/​d/…/view», «open?id=…» и т.п.
+ * Возвращает «легкий» thumbnail (≤1600 px) по ID.
+ */
+const thumb = id => `https://drive.google.com/thumbnail?id=${id}`;
+
+/*
+ * Возвращает «крупный» вариант (до 2048 px), подходит для лайтбокса.
+ */
+const large = id => `https://drive.google.com/thumbnail?id=${id}&sz=w2048`;
+
+/*
+ * Берёт любую ссылку Google Drive и превращает её в thumbnail-URL.
+ * Если ID не найден — возвращает исходную строку.
  */
 function getDisplayableDriveLink(viewLink){
   if(!viewLink || typeof viewLink !== 'string') return '';
 
-  // берём id между “…/d/” и “/” ИЛИ после “id=”
   const m = viewLink.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{10,})/);
-  if(!m) {                     // id не нашли — вернём как есть
+  if(!m){
     console.warn('Drive-ID не найден, вернул исходную ссылку:', viewLink);
     return viewLink;
   }
-
-  // thumbnail-endpoint всегда отдаёт реальную картинку (до 1600 px)
-  return `https://drive.google.com/thumbnail?id=${m[1]}`;
+  return thumb(m[1]);          // лёгкая картинка для <img>
 }
+
 
 /**
  * Загружает CSV данные по URL и парсит их в массив объектов с помощью PapaParse.
@@ -605,20 +613,18 @@ map.whenReady(()=>{
                     const p=f.properties||{};
 
                    const imgs = [p.img, p.img2, p.img3]
-  .filter(src => src && String(src).trim() !== '')
-  .map(src => {
-     // берём ID из любой drive-ссылки
-     const m = src.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{10,})/);
-     if(!m) return '';                          // если не drive – вернём как есть
-     const id   = m[1];
-     const thumb = `https://drive.google.com/thumbnail?id=${id}`;
-     const full  = `https://drive.google.com/uc?export=view&id=${id}`;
-     return `<img class="popup-img"
-                  src="${thumb}"
-                  data-full="${full}"
-                  style="cursor:zoom-in">`;
+  .filter(s => s && s.trim())
+  .map(s =>{
+      const m = s.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{10,})/);
+      if(!m) return '';
+      const id = m[1];
+      return `<img class="popup-img"
+                   src="${thumb(id)}"
+                   data-full="${large(id)}"
+                   style="cursor:zoom-in">`;
   })
   .join('<br>');
+
 
 
                     const title = p.name ? `<div class="popup-title">${p.name}</div>` : '';
@@ -677,15 +683,13 @@ document.body.appendChild(w);
 w.querySelector('.lb-close').onclick=()=>w.remove();
 w.onclick=e=>{if(e.target===w) w.remove();};
 }
-map.on('popupopen', e => {
-  e.popup._contentNode
-   .querySelectorAll('.popup-img')
-   .forEach(img =>
-      img.addEventListener('click', () =>
-         showLightbox(img.dataset.full || img.src)
-      )
-   );
+map.on('popupopen', e=>{
+  e.popup._contentNode.querySelectorAll('.popup-img')
+    .forEach(img=>{
+      img.addEventListener('click', ()=>showLightbox(img.dataset.full));
+    });
 });
+
 
 
 /********** 8. бренд-ссылка **********/
