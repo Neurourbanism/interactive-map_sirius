@@ -442,7 +442,7 @@ null,
 /********** 6. точки-объекты **********/
 
 // ВАЖНО: Эта ссылка уже актуальна и работает. Ошибка 404, скорее всего, была временным сбоем
-// или проблемой с кэшем.
+// или проблемой с кэшем. Мы добавили дополнительные меры по борьбе с кэшем.
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtVrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv';
 
 /**
@@ -456,21 +456,31 @@ function getDisplayableDriveLink(viewLink) {
     if (trimmedLink === '') return '';
 
     // Регулярное выражение для извлечения FILE_ID из различных форматов Google Drive ссылок
-    // Добавлена поддержка более общих URL, если fileId не в path, а в query
-    const fileIdMatch = trimmedLink.match(/(?:id=([a-zA-Z0-9_-]+)|file\/d\/([a-zA-Z0-9_-]+)|presentation\/d\/([a-zA-Z0-9_-]+)|drive\.google\.com\/.+[?&]id=([a-zA-Z0-9_-]+))/);
+    // Поддерживает ссылки вида:
+    // https://drive.google.com/file/d/FILE_ID/view
+    // https://drive.google.com/open?id=FILE_ID
+    // https://docs.google.com/presentation/d/FILE_ID/edit (и другие Google Docs)
+    // Также добавлена поддержка параметра "id=" в URL query string
+    const fileIdMatch = trimmedLink.match(/(?:id=([a-zA-Z0-9_-]+)|file\/d\/([a-zA-Z0-9_-]+)|presentation\/d\/([a-zA-Z0-9_-]+)|[?&]id=([a-zA-Z0-9_-]+))/);
 
     let fileId = null;
     if (fileIdMatch) {
-        // Проверяем все группы захвата
+        // fileIdMatch[1] для ссылок, где id является первым параметром или частью пути (кроме /file/d/ и /presentation/d/)
+        // fileIdMatch[2] для ссылок с путем "file/d/"
+        // fileIdMatch[3] для ссылок с путем "presentation/d/"
+        // fileIdMatch[4] для id= в query string (например, drive.google.com/view?id=...)
         fileId = fileIdMatch[1] || fileIdMatch[2] || fileIdMatch[3] || fileIdMatch[4];
     }
 
     if (fileId) {
-        // Используем https://drive.google.com/uc?id=FILE_ID для прямого доступа к содержимому файла
+        // Предпочтительный формат для прямого встраивания изображения, не используем &export=view,
+        // так как он иногда вызывает проблемы с CORS или перенаправлениями для <img>.
+        // Google Drive /uc?id=FILE_ID сам по себе отдает контент файла.
         return `https://drive.google.com/uc?id=${fileId}`;
     }
     // Если FILE_ID не найден или это не распознанная ссылка на Google Drive,
-    // возвращаем исходную ссылку.
+    // возвращаем исходную ссылку. Это может быть ссылка на другой хостинг изображений
+    // или некорректная ссылка на Drive.
     console.warn('Не удалось извлечь File ID из ссылки Google Drive. Возвращена исходная ссылка:', viewLink);
     return trimmedLink;
 }
@@ -481,38 +491,58 @@ function getDisplayableDriveLink(viewLink) {
  * @returns {Promise<Array<Object>>} - Промис, который разрешается массивом объектов.
  */
 async function fetchAndParseCsv(url) {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const csvText = await response.text();
-
-    return new Promise((resolve, reject) => {
-        Papa.parse(csvText, {
-            header: true,
-            dynamicTyping: true, // Помогает с числами без пробелов, если формат локали соответствует
-            skipEmptyLines: true,
-            complete: function(results) {
-                // Дополнительная обработка для обрезки строковых значений
-                const processedData = results.data.map(row => {
-                    const newRow = {};
-                    for (const key in row) {
-                        let value = row[key];
-                        if (typeof value === 'string') {
-                            newRow[key] = value.trim();
-                        } else {
-                            newRow[key] = value;
-                        }
-                    }
-                    return newRow;
-                });
-                resolve(processedData);
-            },
-            error: function(err) {
-                reject(err);
-            }
+    console.log(`[CSV Fetch] Attempting to fetch CSV from: ${url}`);
+    try {
+        const response = await fetch(url, {
+            cache: 'no-store' // Попытка обойти возможные проблемы с кэшем
         });
-    });
+
+        console.log(`[CSV Fetch] Fetch response for ${url}: status ${response.status}, ok: ${response.ok}`);
+
+        if (!response.ok) {
+            // Добавляем больше контекста для отладки, пытаясь прочитать тело ошибки
+            const errorBody = await response.text().catch(() => 'No response body available.');
+            console.error(`[CSV Fetch] HTTP error details: Status ${response.status}, Body (first 200 chars): ${errorBody.substring(0, 200)}...`);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const csvText = await response.text();
+        console.log(`[CSV Fetch] Successfully fetched CSV text (first 200 chars): ${csvText.substring(0, 200)}...`);
+
+        return new Promise((resolve, reject) => {
+            Papa.parse(csvText, {
+                header: true, // Первая строка - заголовки
+                dynamicTyping: true, // Автоматически преобразовывать числа и булевы значения (с оговорками для чисел с пробелами)
+                skipEmptyLines: true, // Пропускать пустые строки
+                complete: function(results) {
+                    console.log('[PapaParse] Parse complete. Data rows:', results.data.length);
+                    if (results.errors.length) {
+                        console.warn('[PapaParse] Errors during parsing:', results.errors);
+                    }
+                    const processedData = results.data.map(row => {
+                        const newRow = {};
+                        for (const key in row) {
+                            let value = row[key];
+                            if (typeof value === 'string') {
+                                newRow[key] = value.trim();
+                            } else {
+                                newRow[key] = value;
+                            }
+                        }
+                        return newRow;
+                    });
+                    console.log('[PapaParse] Processed data for GeoJSON conversion (first row):', processedData[0]);
+                    resolve(processedData);
+                },
+                error: function(err) {
+                    console.error('[PapaParse] Parsing error:', err);
+                    reject(err);
+                }
+            });
+        });
+    } catch (error) {
+        console.error('[CSV Fetch] Error during fetch operation:', error);
+        throw error; // Перебрасываем ошибку дальше, чтобы она была поймана в .catch
+    }
 }
 
 /**
@@ -540,7 +570,7 @@ function convertToGeoJSON(csvData) {
             properties: properties,
             geometry: {
                 type: 'Point',
-                coordinates: [lng, lat] // GeoJSON ожидает [longitude, latitude]
+                coordinates: [lng, lat] // GeoJSON формат: [долгота, широта]
             }
         };
     }).filter(Boolean); // Отфильтровываем null-значения
@@ -571,39 +601,43 @@ const cleanAndParseNumber = (value) => {
 map.whenReady(()=>{
     fetchAndParseCsv(GOOGLE_SHEET_CSV_URL)
         .then(csvData => {
-            console.log('Processed CSV Data:', csvData); // <--- Добавил для отладки
+            console.log('[Main] Processed CSV Data:', csvData);
             if (!csvData || csvData.length === 0) {
-                console.warn('Загруженные CSV данные пусты или некорректны. Маркеры не будут добавлены.');
+                console.warn('[Main] Загруженные CSV данные пусты или некорректны. Маркеры не будут добавлены.');
                 return;
             }
 
             const geojsonData = convertToGeoJSON(csvData);
-            console.log('Converted GeoJSON Data:', geojsonData); // <--- Добавил для отладки
+            console.log('[Main] Converted GeoJSON Data:', geojsonData);
 
             if (!geojsonData || !geojsonData.features || geojsonData.features.length === 0) {
-                console.warn('Преобразованные GeoJSON данные пусты или некорректны. Маркеры не будут добавлены.');
+                console.warn('[Main] Преобразованные GeoJSON данные пусты или некорректны. Маркеры не будут добавлены.');
                 return;
             }
 
             L.geoJSON(geojsonData,{
                 pointToLayer:(f,ll)=>{
                     let cat=(f.properties.cat||'buildings').toLowerCase();
-                    if(cat==='buldings') cat='buildings'; // Исправление опечатки, если есть
-                    const icon = icons[cat] || icons.buildings; // Fallback на иконку buildings
+                    // Исправляем возможную опечатку 'buldings' на 'buildings'
+                    if(cat==='buldings') cat='buildings';
+                    // Используем иконку по категории, с запасной на 'buildings' если категория неизвестна
+                    const icon = icons[cat] || icons.buildings;
                     return L.marker(ll,{icon:icon});
                 },
                 onEachFeature:(f,lyr)=>{
-                    console.log('Processing feature:', f.properties.name, f.geometry.coordinates); // <--- Добавил для отладки
+                    console.log('Processing feature:', f.properties.name, f.geometry.coordinates);
                     const p=f.properties||{};
 
-                    // Обработка изображений
+                    // Обработка изображений: используем новую функцию для получения прямых ссылок
+                    // Фильтруем пустые или содержащие только пробелы ссылки
                     const imgs = [p.img, p.img2, p.img3]
-                        .filter(src => src && String(src).trim() !== '')
-                        .map(src => `<img class="popup-img" src="${getDisplayableDriveLink(src)}" style="cursor:zoom-in">`)
+                        .filter(src => src && String(src).trim() !== '') // Убеждаемся, что src не пустой и не состоит из пробелов
+                        .map(src => `<img class="popup-img" src="${getDisplayableDriveLink(src)}" style="cursor:zoom-in">`) // ИСПОЛЬЗУЕМ НОВУЮ ФУНКЦИЮ
                         .join('<br>');
 
-                    const title = p.name ? `<div class="popup-title">${p.name}</div>` : '';
-                    const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
+                    // Убедимся, что p.name и p.descr корректно используются
+                    const title = p.name ? `<div class="popup-title">${p.name}</div>` : ''; // Название объекта
+                    const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : ''; // Описание
 
                     const tep=[];
                     // Используем cleanAndParseNumber для числовых ТЭП
@@ -617,9 +651,7 @@ map.whenReady(()=>{
                     if(grossarea !== null)  tep.push(`Общая площадь — ${grossarea.toLocaleString('ru-RU')} м²`);
                     if(usefularea !== null) tep.push(`Полезная площадь — ${usefularea.toLocaleString('ru-RU')} м²`);
                     if(roofarea !== null)   tep.push(`Экспл. кровля — ${roofarea.toLocaleString('ru-RU')} м²`);
-                    // Форматируем инвестиции до одной десятичной цифры
-                    if(invest !== null)     tep.push(`Инвестиции — ${invest.toLocaleString('ru-RU', {minimumFractionDigits: 1, maximumFractionDigits: 1})} млрд ₽`);
-                    // Дополнительная проверка на пустые строки для текстовых полей
+                    if(invest !== null)     tep.push(`Инвестиции — ${invest.toLocaleString('ru-RU', {minimumFractionDigits: 1, maximumFractionDigits: 1})} млрд ₽`); // Форматируем до одной десятичной цифры
                     if(p.implement && String(p.implement).trim() !== '')  tep.push(`Механизм реализации — ${p.implement}`);
                     if(p.period && String(p.period).trim() !== '')     tep.push(`Период строительства — ${p.period}`);
 
@@ -628,22 +660,23 @@ map.whenReady(()=>{
                     
                     lyr.bindPopup(`${imgs}${title}${description}${tepBlock}`);
 
+                    // Добавляем слой в соответствующую группу combo
                     const targetCat = (p.cat || 'buildings').toLowerCase();
                     if (combo[targetCat]) {
                         combo[targetCat].addLayer(lyr);
                     } else {
-                        // Эта ветка должна срабатывать редко, так как есть fallback cat='buildings'
                         console.warn(`Категория "${targetCat}" не найдена в группах combo. Добавляем в "buildings".`, p);
-                        combo.buildings.addLayer(lyr);
+                        combo.buildings.addLayer(lyr); // Запасной вариант, если категория неизвестна
                     }
                 }
             });
         })
         .catch(error => {
-            console.error('Ошибка при загрузке или обработке данных из Google Таблицы:', error);
+            console.error('[Main] Ошибка при загрузке или обработке данных из Google Таблицы:', error);
             // Дополнительная информация для пользователя при ошибке 404
             if (error.message.includes('404')) {
-                console.error('Причина 404 ошибки: Вероятно, Google Таблица не опубликована в интернете как CSV, или ссылка устарела. Проверьте публикацию вкладки "MAP_EXPORT" и обновите GOOGLE_SHEET_CSV_URL.');
+                console.error('[Main] Причина 404 ошибки: Вероятно, Google Таблица не опубликована в интернете как CSV, или ссылка устарела. Проверьте публикацию вкладки "MAP_EXPORT" и обновите GOOGLE_SHEET_CSV_URL.');
+                console.error('[Main] Убедитесь, что вы очистили кэш браузера и GitHub Pages.');
             }
         });
 
