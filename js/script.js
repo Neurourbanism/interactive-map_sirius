@@ -604,10 +604,22 @@ map.whenReady(()=>{
                     console.log('Processing feature:', f.properties.name, f.geometry.coordinates);
                     const p=f.properties||{};
 
-                    const imgs = [p.img, p.img2, p.img3]
-                        .filter(src => src && String(src).trim() !== '')
-                        .map(src => `<img class="popup-img" src="${getDisplayableDriveLink(src)}" style="cursor:zoom-in">`)
-                        .join('<br>');
+                   const imgs = [p.img, p.img2, p.img3]
+  .filter(src => src && String(src).trim() !== '')
+  .map(src => {
+     // берём ID из любой drive-ссылки
+     const m = src.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{10,})/);
+     if(!m) return '';                          // если не drive – вернём как есть
+     const id   = m[1];
+     const thumb = `https://drive.google.com/thumbnail?id=${id}`;
+     const full  = `https://drive.google.com/uc?export=view&id=${id}`;
+     return `<img class="popup-img"
+                  src="${thumb}"
+                  data-full="${full}"
+                  style="cursor:zoom-in">`;
+  })
+  .join('<br>');
+
 
                     const title = p.name ? `<div class="popup-title">${p.name}</div>` : '';
                     const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
@@ -665,10 +677,16 @@ document.body.appendChild(w);
 w.querySelector('.lb-close').onclick=()=>w.remove();
 w.onclick=e=>{if(e.target===w) w.remove();};
 }
-map.on('popupopen',e=>{
-e.popup._contentNode.querySelectorAll('.popup-img')
-.forEach(img=>img.addEventListener('click',()=>showLightbox(img.src)));
+map.on('popupopen', e => {
+  e.popup._contentNode
+   .querySelectorAll('.popup-img')
+   .forEach(img =>
+      img.addEventListener('click', () =>
+         showLightbox(img.dataset.full || img.src)
+      )
+   );
 });
+
 
 /********** 8. бренд-ссылка **********/
 const br=document.createElement('a');
