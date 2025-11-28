@@ -445,7 +445,7 @@ null,
 // ВАЖНО: Замените эту ссылку на ту, которую вы получите после **ПОВТОРНОЙ ПУБЛИКАЦИИ**
 // вашей Google Таблицы "MAP_EXPORT" в интернете как CSV-файл.
 // Текущая ссылка выдает 404, что говорит о проблемах с публикацией на стороне Google.
-const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtvrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv';
+const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtvrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv'; // <--- ОБНОВИТЕ ЭТУ ССЫЛКУ!
 // =========================================================================================
 
 /**
@@ -467,7 +467,8 @@ function getDisplayableDriveLink(viewLink) {
     }
 
     if (fileId) {
-        return `https://drive.google.com/uc?id=${fileId}`;
+        // ИСПРАВЛЕНО: Добавлен параметр export=download для обхода ограничений Google Диска
+        return `https://drive.google.com/uc?export=download&id=${fileId}`; 
     }
     console.warn('Не удалось извлечь File ID из ссылки Google Drive. Возвращена исходная ссылка:', viewLink);
     return trimmedLink;
