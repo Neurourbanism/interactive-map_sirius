@@ -444,22 +444,39 @@ null,
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtvrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv';
 
 /**
- * Преобразует ссылку на Google Диск из формата "просмотр" в формат "прямая загрузка".
+ * Преобразует ссылку на Google Диск из формата "просмотр" в формат для отображения в img теге.
  * @param {string} viewLink - Ссылка на файл Google Диска в формате просмотра.
- * @returns {string} - Ссылка на прямую загрузку файла.
+ * @returns {string} - Ссылка для прямого отображения файла в <img>.
  */
-function getDirectDriveLink(viewLink) {
+function getDisplayableDriveLink(viewLink) {
     if (!viewLink || typeof viewLink !== 'string') return '';
-    // Убедимся, что ссылка не пустая и не содержит только пробелы
     const trimmedLink = viewLink.trim();
     if (trimmedLink === '') return '';
 
-    const match = trimmedLink.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/view/);
-    if (match && match[1]) {
-        const fileId = match[1];
-        return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    // Регулярное выражение для извлечения FILE_ID из различных форматов Google Drive ссылок
+    // Поддерживает ссылки вида:
+    // https://drive.google.com/file/d/FILE_ID/view
+    // https://drive.google.com/open?id=FILE_ID
+    // https://docs.google.com/presentation/d/FILE_ID/edit (и другие Google Docs)
+    const fileIdMatch = trimmedLink.match(/(?:id=([a-zA-Z0-9_-]+)|file\/d\/([a-zA-Z0-9_-]+)|presentation\/d\/([a-zA-Z0-9_-]+))/);
+
+    let fileId = null;
+    if (fileIdMatch) {
+        // fileIdMatch[1] для ссылок с параметром "id="
+        // fileIdMatch[2] для ссылок с путем "file/d/"
+        // fileIdMatch[3] для ссылок с путем "presentation/d/" (менее вероятно для изображений)
+        fileId = fileIdMatch[1] || fileIdMatch[2] || fileIdMatch[3];
     }
-    // Если ссылка уже прямая или другого формата, возвращаем как есть
+
+    if (fileId) {
+        // Этот формат часто более надежен для прямого отображения в <img> тегах
+        // при условии, что файл открыт для просмотра "любому, у кого есть ссылка".
+        return `https://drive.google.com/uc?id=${fileId}&export=view`;
+    }
+    // Если FILE_ID не найден или это не распознанная ссылка на Google Drive,
+    // возвращаем исходную ссылку. Это может быть ссылка на другой хостинг изображений
+    // или некорректная ссылка на Drive.
+    console.warn('Не удалось извлечь File ID из ссылки Google Drive:', viewLink);
     return trimmedLink;
 }
 
@@ -478,7 +495,7 @@ async function fetchAndParseCsv(url) {
     return new Promise((resolve, reject) => {
         Papa.parse(csvText, {
             header: true, // Первая строка - заголовки
-            dynamicTyping: true, // Автоматически преобразовывать числа и булевы значения
+            dynamicTyping: true, // Автоматически преобразовывать числа и булевы значения (НЕ работает с числами, содержащими пробелы)
             skipEmptyLines: true, // Пропускать пустые строки
             complete: function(results) {
                 // PapaParse уже хорошо обрабатывает данные, но мы можем дополнительно обрезать пробелы у строковых значений
@@ -542,6 +559,22 @@ function convertToGeoJSON(csvData) {
     };
 }
 
+// Вспомогательная функция для безопасного парсинга чисел, удаляющая общепринятые форматирования (например, пробелы)
+const cleanAndParseNumber = (value) => {
+    if (typeof value === 'string') {
+        // Удаляем пробелы (разделители тысяч) и заменяем запятую (десятичный разделитель) на точку
+        const cleanedValue = value.trim().replace(/\s/g, '').replace(/,/g, '.');
+        const num = parseFloat(cleanedValue);
+        return isNaN(num) ? null : num;
+    }
+    // Если это уже число, убеждаемся, что оно не NaN
+    if (typeof value === 'number' && !isNaN(value)) {
+        return value;
+    }
+    return null; // Возвращаем null для любых других нечисловых или некорректных значений
+};
+
+
 map.whenReady(()=>{
     fetchAndParseCsv(GOOGLE_SHEET_CSV_URL)
         .then(csvData => {
@@ -563,7 +596,7 @@ map.whenReady(()=>{
                     // Фильтруем пустые или содержащие только пробелы ссылки
                     const imgs = [p.img, p.img2, p.img3]
                         .filter(src => src && String(src).trim() !== '') // Убеждаемся, что src не пустой и не состоит из пробелов
-                        .map(src => `<img class="popup-img" src="${getDirectDriveLink(src)}" style="cursor:zoom-in">`)
+                        .map(src => `<img class="popup-img" src="${getDisplayableDriveLink(src)}" style="cursor:zoom-in">`) // ИСПОЛЬЗУЕМ НОВУЮ ФУНКЦИЮ
                         .join('<br>');
 
                     // Убедимся, что p.name и p.descr корректно используются
@@ -571,15 +604,20 @@ map.whenReady(()=>{
                     const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : ''; // Описание
 
                     const tep=[];
-                    // Все эти данные теперь берутся из соответствующих колонок таблицы
-                    // PapaParse с dynamicTyping должен помочь с преобразованием в числа
-                    if(p.buildarea && !isNaN(p.buildarea))  tep.push(`Площадь застройки — ${(+p.buildarea).toLocaleString('ru-RU')} м²`);
-                    if(p.grossarea && !isNaN(p.grossarea))  tep.push(`Общая площадь — ${(+p.grossarea).toLocaleString('ru-RU')} м²`);
-                    if(p.usefularea && !isNaN(p.usefularea)) tep.push(`Полезная площадь — ${(+p.usefularea).toLocaleString('ru-RU')} м²`);
-                    if(p.roofarea && !isNaN(p.roofarea))   tep.push(`Экспл. кровля — ${(+p.roofarea).toLocaleString('ru-RU')} м²`);
-                    if(p.invest && !isNaN(p.invest))     tep.push(`Инвестиции — ${(+p.invest).toLocaleString('ru-RU')} млрд ₽`); // Добавил toLocaleString для invest
-                    if(p.implement)  tep.push(`Механизм реализации — ${p.implement}`);
-                    if(p.period)     tep.push(`Период строительства — ${p.period}`);
+                    // Используем cleanAndParseNumber для числовых ТЭП
+                    const buildarea = cleanAndParseNumber(p.buildarea);
+                    const grossarea = cleanAndParseNumber(p.grossarea);
+                    const usefularea = cleanAndParseNumber(p.usefularea);
+                    const roofarea = cleanAndParseNumber(p.roofarea);
+                    const invest = cleanAndParseNumber(p.invest);
+
+                    if(buildarea !== null)  tep.push(`Площадь застройки — ${buildarea.toLocaleString('ru-RU')} м²`);
+                    if(grossarea !== null)  tep.push(`Общая площадь — ${grossarea.toLocaleString('ru-RU')} м²`);
+                    if(usefularea !== null) tep.push(`Полезная площадь — ${usefularea.toLocaleString('ru-RU')} м²`);
+                    if(roofarea !== null)   tep.push(`Экспл. кровля — ${roofarea.toLocaleString('ru-RU')} м²`);
+                    if(invest !== null)     tep.push(`Инвестиции — ${invest.toLocaleString('ru-RU', {minimumFractionDigits: 1, maximumFractionDigits: 1})} млрд ₽`); // Форматируем до одной десятичной цифры
+                    if(p.implement && String(p.implement).trim() !== '')  tep.push(`Механизм реализации — ${p.implement}`);
+                    if(p.period && String(p.period).trim() !== '')     tep.push(`Период строительства — ${p.period}`);
 
                     const tepBlock = tep.length
                         ? `<details class="popup-tep"><summary>ТЭП</summary><ul><li>${tep.join('</li><li>')}</li></ul></details>` : '';
