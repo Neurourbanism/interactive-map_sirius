@@ -448,30 +448,23 @@ null,
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtvrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv'; // <--- ОБНОВИТЕ ЭТУ ССЫЛКУ!
 // =========================================================================================
 
-/**
- * Преобразует ссылку на Google Диск из формата "просмотр" в формат для отображения в img теге.
- * @param {string} viewLink - Ссылка на файл Google Диска в формате просмотра.
- * @returns {string} - Ссылка для прямого отображения файла в <img>.
+/*
+ * Преобразует ссылку Google Drive в прямой thumbnail-URL, который
+ * браузер <img> всегда может показать (без HTML-промежутков).
+ * Работает для любого «file/​d/…/view», «open?id=…» и т.п.
  */
-function getDisplayableDriveLink(viewLink) {
-    if (!viewLink || typeof viewLink !== 'string') return '';
-    const trimmedLink = viewLink.trim();
-    if (trimmedLink === '') return '';
+function getDisplayableDriveLink(viewLink){
+  if(!viewLink || typeof viewLink !== 'string') return '';
 
-    // Регулярное выражение для извлечения FILE_ID из различных форматов Google Drive ссылок
-    const fileIdMatch = trimmedLink.match(/(?:id=([a-zA-Z0-9_-]+)|file\/d\/([a-zA-Z0-9_-]+)|presentation\/d\/([a-zA-Z0-9_-]+)|[?&]id=([a-zA-Z0-9_-]+))/);
+  // берём id между “…/d/” и “/” ИЛИ после “id=”
+  const m = viewLink.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{10,})/);
+  if(!m) {                     // id не нашли — вернём как есть
+    console.warn('Drive-ID не найден, вернул исходную ссылку:', viewLink);
+    return viewLink;
+  }
 
-    let fileId = null;
-    if (fileIdMatch) {
-        fileId = fileIdMatch[1] || fileIdMatch[2] || fileIdMatch[3] || fileIdMatch[4];
-    }
-
-    if (fileId) {
-        // ИСПРАВЛЕНО: Добавлен параметр export=download для обхода ограничений Google Диска
-        return `https://drive.google.com/uc?export=download&id=${fileId}`; 
-    }
-    console.warn('Не удалось извлечь File ID из ссылки Google Drive. Возвращена исходная ссылка:', viewLink);
-    return trimmedLink;
+  // thumbnail-endpoint всегда отдаёт реальную картинку (до 1600 px)
+  return `https://drive.google.com/thumbnail?id=${m[1]}`;
 }
 
 /**
