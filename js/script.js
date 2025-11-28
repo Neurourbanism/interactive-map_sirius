@@ -441,7 +441,7 @@ null,
 
 /********** 6. точки-объекты **********/
 
-const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtvrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv';
+const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4mENtARo9RXcrsAW0eTpzVFlwVG2S804TYEtVrt-rt-MxX8Qxz-aQE2ZGdu45_RIGHOgEAcRzCQ7A/pub?gid=569805773&single=true&output=csv';
 
 /**
  * Преобразует ссылку на Google Диск из формата "просмотр" в формат для отображения в img теге.
@@ -454,28 +454,19 @@ function getDisplayableDriveLink(viewLink) {
     if (trimmedLink === '') return '';
 
     // Регулярное выражение для извлечения FILE_ID из различных форматов Google Drive ссылок
-    // Поддерживает ссылки вида:
-    // https://drive.google.com/file/d/FILE_ID/view
-    // https://drive.google.com/open?id=FILE_ID
-    // https://docs.google.com/presentation/d/FILE_ID/edit (и другие Google Docs)
     const fileIdMatch = trimmedLink.match(/(?:id=([a-zA-Z0-9_-]+)|file\/d\/([a-zA-Z0-9_-]+)|presentation\/d\/([a-zA-Z0-9_-]+))/);
 
     let fileId = null;
     if (fileIdMatch) {
-        // fileIdMatch[1] для ссылок с параметром "id="
-        // fileIdMatch[2] для ссылок с путем "file/d/"
-        // fileIdMatch[3] для ссылок с путем "presentation/d/" (менее вероятно для изображений)
         fileId = fileIdMatch[1] || fileIdMatch[2] || fileIdMatch[3];
     }
 
     if (fileId) {
-        // Этот формат часто более надежен для прямого отображения в <img> тегах
-        // при условии, что файл открыт для просмотра "любому, у кого есть ссылка".
-        return `https://drive.google.com/uc?id=${fileId}&export=view`;
+        // ИСПРАВЛЕНИЕ: Убрано "&export=view" для прямого отображения в <img>
+        return `https://drive.google.com/uc?id=${fileId}`;
     }
     // Если FILE_ID не найден или это не распознанная ссылка на Google Drive,
-    // возвращаем исходную ссылку. Это может быть ссылка на другой хостинг изображений
-    // или некорректная ссылка на Drive.
+    // возвращаем исходную ссылку.
     console.warn('Не удалось извлечь File ID из ссылки Google Drive:', viewLink);
     return trimmedLink;
 }
@@ -494,16 +485,14 @@ async function fetchAndParseCsv(url) {
 
     return new Promise((resolve, reject) => {
         Papa.parse(csvText, {
-            header: true, // Первая строка - заголовки
-            dynamicTyping: true, // Автоматически преобразовывать числа и булевы значения (НЕ работает с числами, содержащими пробелы)
-            skipEmptyLines: true, // Пропускать пустые строки
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
             complete: function(results) {
-                // PapaParse уже хорошо обрабатывает данные, но мы можем дополнительно обрезать пробелы у строковых значений
                 const processedData = results.data.map(row => {
                     const newRow = {};
                     for (const key in row) {
                         let value = row[key];
-                        // Обрезаем пробелы у строковых значений, но оставляем числа/булевы как есть
                         if (typeof value === 'string') {
                             newRow[key] = value.trim();
                         } else {
@@ -528,8 +517,6 @@ async function fetchAndParseCsv(url) {
  */
 function convertToGeoJSON(csvData) {
     const features = csvData.map(row => {
-        // PapaParse с dynamicTyping должен уже преобразовать lat/lng в числа,
-        // но на всякий случай еще раз проверяем и приводим к float.
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.lng);
 
@@ -538,7 +525,6 @@ function convertToGeoJSON(csvData) {
             return null;
         }
 
-        // Копируем свойства и удаляем lat/lng, так как они будут в геометрии
         const properties = { ...row };
         delete properties.lat;
         delete properties.lng;
@@ -548,10 +534,10 @@ function convertToGeoJSON(csvData) {
             properties: properties,
             geometry: {
                 type: 'Point',
-                coordinates: [lng, lat] // GeoJSON формат: [долгота, широта]
+                coordinates: [lng, lat]
             }
         };
-    }).filter(Boolean); // Отфильтровываем null-значения (пропущенные строки)
+    }).filter(Boolean);
 
     return {
         type: 'FeatureCollection',
@@ -583,25 +569,21 @@ map.whenReady(()=>{
             L.geoJSON(geojsonData,{
                 pointToLayer:(f,ll)=>{
                     let cat=(f.properties.cat||'buildings').toLowerCase();
-                    // Исправляем возможную опечатку 'buldings' на 'buildings'
                     if(cat==='buldings') cat='buildings';
-                    // Используем иконку по категории, с запасной на 'buildings' если категория неизвестна
                     const icon = icons[cat] || icons.buildings;
                     return L.marker(ll,{icon:icon});
                 },
                 onEachFeature:(f,lyr)=>{
                     const p=f.properties||{};
 
-                    // Обработка изображений: используем новую функцию для получения прямых ссылок
-                    // Фильтруем пустые или содержащие только пробелы ссылки
+                    // Обработка изображений
                     const imgs = [p.img, p.img2, p.img3]
-                        .filter(src => src && String(src).trim() !== '') // Убеждаемся, что src не пустой и не состоит из пробелов
-                        .map(src => `<img class="popup-img" src="${getDisplayableDriveLink(src)}" style="cursor:zoom-in">`) // ИСПОЛЬЗУЕМ НОВУЮ ФУНКЦИЮ
+                        .filter(src => src && String(src).trim() !== '')
+                        .map(src => `<img class="popup-img" src="${getDisplayableDriveLink(src)}" style="cursor:zoom-in">`)
                         .join('<br>');
 
-                    // Убедимся, что p.name и p.descr корректно используются
-                    const title = p.name || ''; // Название объекта
-                    const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : ''; // Описание
+                    const title = p.name || '';
+                    const description = p.descr ? `<div class="popup-text">${p.descr}</div>` : '';
 
                     const tep=[];
                     // Используем cleanAndParseNumber для числовых ТЭП
@@ -615,7 +597,9 @@ map.whenReady(()=>{
                     if(grossarea !== null)  tep.push(`Общая площадь — ${grossarea.toLocaleString('ru-RU')} м²`);
                     if(usefularea !== null) tep.push(`Полезная площадь — ${usefularea.toLocaleString('ru-RU')} м²`);
                     if(roofarea !== null)   tep.push(`Экспл. кровля — ${roofarea.toLocaleString('ru-RU')} м²`);
-                    if(invest !== null)     tep.push(`Инвестиции — ${invest.toLocaleString('ru-RU', {minimumFractionDigits: 1, maximumFractionDigits: 1})} млрд ₽`); // Форматируем до одной десятичной цифры
+                    // Форматируем инвестиции до одной десятичной цифры
+                    if(invest !== null)     tep.push(`Инвестиции — ${invest.toLocaleString('ru-RU', {minimumFractionDigits: 1, maximumFractionDigits: 1})} млрд ₽`);
+                    // Дополнительная проверка на пустые строки для текстовых полей
                     if(p.implement && String(p.implement).trim() !== '')  tep.push(`Механизм реализации — ${p.implement}`);
                     if(p.period && String(p.period).trim() !== '')     tep.push(`Период строительства — ${p.period}`);
 
@@ -624,13 +608,12 @@ map.whenReady(()=>{
                     
                     lyr.bindPopup(`${imgs}<div class="popup-title">${title}</div>${description}${tepBlock}`);
 
-                    // Добавляем слой в соответствующую группу combo
                     const targetCat = (p.cat || 'buildings').toLowerCase();
                     if (combo[targetCat]) {
                         combo[targetCat].addLayer(lyr);
                     } else {
                         console.warn(`Категория "${targetCat}" не найдена в группах combo. Добавляем в "buildings".`, p);
-                        combo.buildings.addLayer(lyr); // Запасной вариант, если категория неизвестна
+                        combo.buildings.addLayer(lyr);
                     }
                 }
             });
